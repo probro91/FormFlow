@@ -1,14 +1,92 @@
-#!/usr/bin/env python3
-
 import argparse
+import os
+import requests
 import cv2
 import mediapipe as mp
 import numpy as np
 import sys
+from anthropic import Anthropic
+from dotenv import load_dotenv
+
+# Load environment variables from a .env file (if present)
+load_dotenv()
+
+# Retrieve API Key securely from environment variables
+claude_api_key = os.environ.get("CLAUDE_API_KEY")
+ # Replace with your key if testing locally
+
 
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
+
+# Initialize Anthropic Client
+client = Anthropic(api_key=claude_api_key)
+############################
+
+
+##########################################
+# Claude Running Coach Function
+##########################################
+def call_claude_coach(analysis_categories):
+    """
+    Sends running form analysis feedback to Claude 3.5 Sonnet 2024-10-22
+    and returns personalized running coach advice.
+    """
+    if not claude_api_key:
+        print("Claude API Key is missing! Set CLAUDE_API_KEY as an environment variable.")
+        return "Sorry, I couldn’t get additional coach advice from Claude."
+
+    # Format categories for the prompt
+    formatted_issues = ""
+    for category in analysis_categories:
+        if category["status"] == "wrong":
+            formatted_issues += f"- **{category['title']}**: {category['issue_description']} (Potential issues: {category['potential_health_issues']})\n"
+        else:
+            formatted_issues += f"- **{category['title']}**: No issue detected. Good job!\n"
+
+    # Construct structured prompt
+    prompt = f"""
+    You are a professional running coach analyzing an athlete’s running form.
+    The following categories were evaluated, and areas needing
+improvement are identified.
+
+    ### **Running Form Analysis Results**
+    {formatted_issues}
+
+    ### **Coaching Instructions**
+    - If a category is marked as **"wrong"**, provide a **detailed
+explanation** on how to improve.
+    - If a category is marked as **"right"**, provide **positive
+reinforcement**.
+    - Keep responses **clear, motivational, and practical**.
+    - Provide **one structured sentence per category** with concise advice.
+
+    **Example Output Format:**
+    - **Head Position**: Keep your gaze forward and relax your neck to
+avoid excessive strain.
+    - **Knee Drive**: Incorporate high-knee drills to improve power
+and efficiency.
+    - **Cadence**: Your cadence is slightly high (~201.9 SPM). Ensure
+you are not taking excessively short steps and focus on maintaining
+rhythm.
+
+    Provide your response now.
+    """
+
+    try:
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        # Extract the content from `message.content`
+        return message.content if hasattr(message, "content") else "Claude returned an unexpected response format."
+    except Exception as e:
+        print(f"Error calling Claude: {e}")
+        return "Sorry, I couldn’t get additional coach advice from Claude."
+
 
 ############################
 # Utility / Helper Functions
@@ -547,28 +625,39 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     }
 
     return results
-
 ##################
 # Main Entry Point
 ##################
 def main():
     parser = argparse.ArgumentParser(
-        description="Analyze running form (stride length, arm swing, posture, etc.) from a local video and produce a traced output."
+        description="Analyze running form, then get Claude's coach advice."
     )
-    parser.add_argument("--video", type=str, required=True, help="Path to the local input video file (e.g. video.mp4).")
-    parser.add_argument("--output", type=str, default="output_traced.mp4", help="Path to the output traced video.")
+    parser.add_argument("--video", type=str, required=True, help="Path to the input video file (e.g. video.mp4).")
+    parser.add_argument("--output", type=str,
+default="output_traced.mp4", help="Path to the output traced video.")
     args = parser.parse_args()
 
+    # 1) Analyze
     results = analyze_running_form(args.video, args.output)
 
+    # 2) Get Claude Coach Suggestions
+    # We call 'call_claude_coach' with the 'analysis_categories'
+    claude_suggestions = call_claude_coach(results["analysis_categories"])
+    results["claude_suggestions"] = claude_suggestions
+
+    # 3) Print out analysis
     print("\n--- Running Form Analysis ---\n")
     for k, v in results.items():
         if k == "analysis_categories":
             print("analysis_categories:")
             for cat in v:
                 print(f"  - {cat}")
+        elif k == "claude_suggestions":
+            print("\n--- Claude Coach Advice ---\n")
+            print(v)
         else:
             print(f"{k}: {v}")
+
     print("\nAnalysis Complete!\n")
 
 if __name__ == "__main__":
