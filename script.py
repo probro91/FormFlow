@@ -1,3 +1,166 @@
+PROBLEM_RESOURCES = {
+    # 1) Excess strain on lower back or hips
+    "Excess strain on lower back or hips": {
+        "articles": [
+            {
+                "title": "How to Prevent and Treat Lower Back Pain from Running",
+                "url": "https://www.runnersworld.com/health-injuries/a20865586/back-pain-and-running/",
+                "description": "Practical tips to reduce lower-back strain through posture and core strengthening.",
+                "image": "https://hips.hearstapps.com/hmg-prod/images/gettyimages-1304825852.jpg"
+            },
+            {
+                "title": "Hip Pain from Running: Causes and Exercises",
+                "url": "https://www.healthline.com/health/hip-pain-running",
+                "description": "Learn the common reasons for hip pain in runners and stretches to alleviate it.",
+                "image": "https://post.healthline.com/wp-content/uploads/2020/08/Young_Man_Rubbing_Hip_Pain-732x549-thumbnail.jpg"
+            }
+        ],
+        "exercises": [
+            "Planks or side planks to strengthen core and stabilize spine.",
+            "Wall sits for posture alignment and hip engagement.",
+            "Hip flexor stretches (kneeling lunge) to relieve tightness."
+        ]
+    },
+
+    # 2) Can cause back pain or poor running economy (Spine alignment)
+    "Can cause back pain or poor running economy": {
+        "articles": [
+            {
+                "title": "5 Tips to Improve Running Posture",
+                "url": "https://www.runnersworld.com/training/a20859973/perfect-running-form/",
+                "description": "Guidance on keeping your spine neutral for better efficiency and fewer aches.",
+                "image": "https://hips.hearstapps.com/hmg-prod/images/mid-adult-female-runner-in-nature-royalty-free-image-1651765778.jpg"
+            }
+        ],
+        "exercises": [
+            "Cat-Camel stretches to mobilize the spine.",
+            "Bird-Dog to strengthen deep core stabilizers."
+        ]
+    },
+
+    # 3) Neck strain or upper back tension (Head position)
+    "Neck strain or upper back tension": {
+        "articles": [
+            {
+                "title": "Relieving Neck Tension for Runners",
+                "url": "https://www.healthline.com/health/neck-strain",
+                "description": "How to maintain a neutral head position and avoid neck tension.",
+                "image": "https://post.healthline.com/wp-content/uploads/2020/08/neckstrain_thumb.jpg"
+            }
+        ],
+        "exercises": [
+            "Gentle neck mobility drills (rotations, tilts).",
+            "Shoulder shrugs and scapular retractions to release upper back tension."
+        ]
+    },
+
+    # 4) Knee Drive
+    "May reduce running efficiency": {
+        "articles": [
+            {
+                "title": "Running Efficiency 101",
+                "url": "https://www.runnersworld.com/training/a20787239/running-efficiency-tips/",
+                "description": "Advice on improving knee drive and stride mechanics for better performance.",
+                "image": "https://hips.hearstapps.com/hmg-prod/images/running-efficiency-101.jpg" 
+            }
+        ],
+        "exercises": [
+            "High-knee drills to reinforce knee lift.",
+            "Form strides focusing on a quick, powerful knee drive."
+        ]
+    },
+    "Could cause extra energy expenditure": {
+        "articles": [
+            {
+                "title": "Avoiding Excess Energy Loss in Running",
+                "url": "https://www.active.com/running/articles/5-ways-to-save-energy-during-your-run",
+                "description": "Identify sources of wasted motion and refine your form for efficiency.",
+                "image": "https://www.active.com/Assets/Running/run-energy-expenditure.jpg"
+            }
+        ],
+        "exercises": [
+            "Moderate high-knee drills focusing on efficient turnover, not maximum height.",
+            "Plyometric drills emphasizing controlled power usage."
+        ]
+    },
+
+    # 5) Foot Strike
+    "Higher impact on knees and shins": {
+        "articles": [
+            {
+                "title": "How to Avoid Knee and Shin Injuries",
+                "url": "https://www.healthline.com/health/running-and-knee-injuries",
+                "description": "Tips to reduce heel striking and prevent shin splints or knee pain.",
+                "image": "https://post.healthline.com/wp-content/uploads/2020/08/638668003-732x549-thumbnail.jpg"
+            }
+        ],
+        "exercises": [
+            "Short stride drills to lessen braking forces.",
+            "Toe taps and calf raises for strengthening shins and ankles."
+        ]
+    },
+
+    # 6) Stride Length
+    "Reduced efficiency, possible overuse of calves": {
+        "articles": [
+            {
+                "title": "Short vs. Long Stride: Finding the Sweet Spot",
+                "url": "https://www.runnersworld.com/training/a20865656/whats-the-right-stride-length/",
+                "description": "Examining how a stride that's too short can increase calf workload.",
+                "image": "https://hips.hearstapps.com/hmg-prod/images/close-up-of-woman-s-legs-running-news-photo-1654080364.jpg"
+            }
+        ],
+        "exercises": [
+            "Calf stretches and foam rolling to alleviate tension.",
+            "Stride extension drills focusing on pushing off the ground."
+        ]
+    },
+    "Overstriding can stress knees & hamstrings": {
+        "articles": [
+            {
+                "title": "What Causes Overstriding?",
+                "url": "https://www.runnersworld.com/training/a20865654/what-causes-overstriding/",
+                "description": "Recognizing and fixing overstriding to reduce injury risk.",
+                "image": "https://hips.hearstapps.com/hmg-prod/images/cropped-shot-of-a-young-man-running-news-photo-1651104401.jpg"
+            }
+        ],
+        "exercises": [
+            "Butt kicks to emphasize quick rear leg recovery.",
+            "Midfoot landing drills to ensure the foot strikes beneath the hips."
+        ]
+    },
+
+    # 7) Arm Swing
+    "Shoulder/neck fatigue, wasted energy": {
+        "articles": [
+            {
+                "title": "Optimize Your Arm Swing for Running",
+                "url": "https://www.runnersworld.com/training/a20865559/the-perfect-arm-swing/",
+                "description": "Proper upper-body mechanics to reduce fatigue and improve efficiency.",
+                "image": "https://hips.hearstapps.com/hmg-prod/images/man-and-woman-running-arm-swing-1576279090.jpg"
+            }
+        ],
+        "exercises": [
+            "Light dumbbell drills to reinforce correct forward-back arm swing.",
+            "Mirror practice focusing on minimal side-to-side motion."
+        ]
+    },
+    "Less balance, less power": {
+        "articles": [
+            {
+                "title": "Improving Arm Swing Balance & Power",
+                "url": "https://www.active.com/running/articles/3-ways-to-develop-a-strong-arm-swing",
+                "description": "Techniques to ensure sufficient arm motion for stability and drive.",
+                "image": "https://www.active.com/Assets/Running/arm-swing-balance.jpg"
+            }
+        ],
+        "exercises": [
+            "Gradual arm swing drills ensuring forward-back motion (no cross-body).",
+            "Core stabilizing moves (e.g. bird-dog, planks) to support balanced arm action."
+        ]
+    }
+}
+
 #!/usr/bin/env python3
 
 import argparse
@@ -477,6 +640,22 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         posture_item["status"] = "wrong"
         posture_item["issue_description"] = f"Runner is {posture_left} on left, {posture_right} on right"
         posture_item["potential_health_issues"] = "Excess strain on lower back or hips"
+
+    # **Attach resources** if status is wrong:
+    if posture_item["status"] == "wrong":
+        # Check if potential_health_issues is in PROBLEM_RESOURCES
+        if posture_item["potential_health_issues"] in PROBLEM_RESOURCES:
+            resources = PROBLEM_RESOURCES[posture_item["potential_health_issues"]]
+            posture_item["articles"] = resources["articles"]
+            posture_item["exercises"] = resources["exercises"]
+        else:
+            posture_item["articles"] = []
+            posture_item["exercises"] = []
+    else:
+        # For "right" categories, you can either omit these or set them to empty
+        posture_item["articles"] = []
+        posture_item["exercises"] = []
+
     analysis_categories.append(posture_item)
 
     # SPINE
@@ -489,8 +668,21 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     if "angled" in spine_feedback.lower():
         spine_item["status"] = "wrong"
         spine_item["issue_description"] = spine_feedback
-        spine_item["potential_health_issues"] = "Can cause back pain or poor running economy"
-    analysis_categories.append(spine_item)
+        spine_item["potential_health_issues"] = "Excess strain on lower back or hips"
+
+    if spine_item["status"] == "wrong":
+        key = spine_item["potential_health_issues"]
+        if key in PROBLEM_RESOURCES:
+            spine_item["articles"] = PROBLEM_RESOURCES[key]["articles"]
+            spine_item["exercises"] = PROBLEM_RESOURCES[key]["exercises"]
+        else:
+            spine_item["articles"] = []
+            spine_item["exercises"] = []
+    else:
+        spine_item["articles"] = []
+        spine_item["exercises"] = []
+
+        analysis_categories.append(spine_item)
 
     # HEAD
     head_item = {
@@ -503,27 +695,60 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         head_item["status"] = "wrong"
         head_item["issue_description"] = head_feedback
         head_item["potential_health_issues"] = "Neck strain or upper back tension"
+
+    if head_item["status"] == "wrong":
+        key = head_item["potential_health_issues"]
+        if key in PROBLEM_RESOURCES:
+            head_item["articles"] = PROBLEM_RESOURCES[key]["articles"]
+            head_item["exercises"] = PROBLEM_RESOURCES[key]["exercises"]
+        else:
+            head_item["articles"] = []
+            head_item["exercises"] = []
+    else:
+        head_item["articles"] = []
+        head_item["exercises"] = []
+
     analysis_categories.append(head_item)
 
-    # KNEE DRIVE
+
+#################################################
+# KNEE DRIVE
+#################################################
     knee_item = {
         "title": "Knee Drive",
         "status": "right",
         "issue_description": "No issue",
         "potential_health_issues": "None"
     }
+
+    # For 'low knee lift' in both legs, or 'very high knee lift':
     if ("low knee lift" in left_knee_feedback.lower() and
         "low knee lift" in right_knee_feedback.lower()):
         knee_item["status"] = "wrong"
         knee_item["issue_description"] = f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}"
         knee_item["potential_health_issues"] = "May reduce running efficiency"
     elif ("very high knee lift" in left_knee_feedback.lower() or
-          "very high knee lift" in right_knee_feedback.lower()):
+        "very high knee lift" in right_knee_feedback.lower()):
         knee_item["status"] = "wrong"
         knee_item["issue_description"] = f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}"
         knee_item["potential_health_issues"] = "Could cause extra energy expenditure"
-    analysis_categories.append(knee_item)
 
+    # Attach resources if 'wrong'
+    if knee_item["status"] == "wrong":
+        key = knee_item["potential_health_issues"]
+        if key in PROBLEM_RESOURCES:
+            knee_item["articles"] = PROBLEM_RESOURCES[key]["articles"]
+            knee_item["exercises"] = PROBLEM_RESOURCES[key]["exercises"]
+        else:
+            knee_item["articles"] = []
+            knee_item["exercises"] = []
+    else:
+        # If 'right', you can store empty lists or omit these fields
+        knee_item["articles"] = []
+        knee_item["exercises"] = []
+
+    analysis_categories.append(knee_item)
+    
     # FOOT STRIKE
     foot_item = {
         "title": "Foot Strike",
@@ -531,6 +756,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "issue_description": "No issue",
         "potential_health_issues": "None"
     }
+
     if percent_heel > 70:
         foot_item["status"] = "wrong"
         foot_item["issue_description"] = f"Predominantly heel-striking (~{percent_heel}% heel)"
@@ -543,6 +769,20 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         foot_item["status"] = "right"
         foot_item["issue_description"] = f"Mostly forefoot/midfoot (~{percent_heel}% heel)"
         foot_item["potential_health_issues"] = "None"
+
+    # Attach resources if 'wrong'
+    if foot_item["status"] == "wrong":
+        key = foot_item["potential_health_issues"]
+        if key in PROBLEM_RESOURCES:
+            foot_item["articles"] = PROBLEM_RESOURCES[key]["articles"]
+            foot_item["exercises"] = PROBLEM_RESOURCES[key]["exercises"]
+        else:
+            foot_item["articles"] = []
+            foot_item["exercises"] = []
+    else:
+        foot_item["articles"] = []
+        foot_item["exercises"] = []
+
     analysis_categories.append(foot_item)
 
     # STRIDE LENGTH
@@ -552,6 +792,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "issue_description": "No issue",
         "potential_health_issues": "None"
     }
+
     if "short stride" in stride_feedback.lower():
         stride_item["status"] = "wrong"
         stride_item["issue_description"] = stride_feedback
@@ -560,6 +801,20 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         stride_item["status"] = "wrong"
         stride_item["issue_description"] = stride_feedback
         stride_item["potential_health_issues"] = "Overstriding can stress knees & hamstrings"
+
+    # Attach resources if 'wrong'
+    if stride_item["status"] == "wrong":
+        key = stride_item["potential_health_issues"]
+        if key in PROBLEM_RESOURCES:
+            stride_item["articles"] = PROBLEM_RESOURCES[key]["articles"]
+            stride_item["exercises"] = PROBLEM_RESOURCES[key]["exercises"]
+        else:
+            stride_item["articles"] = []
+            stride_item["exercises"] = []
+    else:
+        stride_item["articles"] = []
+        stride_item["exercises"] = []
+
     analysis_categories.append(stride_item)
 
     # ARM SWING (Amplitude)
@@ -569,19 +824,37 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "issue_description": "No issue",
         "potential_health_issues": "None"
     }
+
+    # If amplitude is too great, or not enough:
     if excessive_arm_swing:
         arm_amp_item["status"] = "wrong"
         arm_amp_item["issue_description"] = "Excessive horizontal arm swing"
         arm_amp_item["potential_health_issues"] = "Shoulder/neck fatigue, wasted energy"
 
     if not_enough_arm_swing:
-        # If both happen, last sets "status" again. If you want them separate, add separate category.
+        # If both happen, this will overwrite status/issue_description again
+        # Adjust logic if you want them separate or combined
         arm_amp_item["status"] = "wrong"
         arm_amp_item["issue_description"] = "Insufficient arm swing causing reduced balance, less power in stride"
+
+        # If it was "None", set it; otherwise, append to existing
         if arm_amp_item["potential_health_issues"] == "None":
             arm_amp_item["potential_health_issues"] = "Less balance, less power"
         else:
             arm_amp_item["potential_health_issues"] += ", plus reduced balance/power"
+
+    # Attach resources if 'wrong'
+    if arm_amp_item["status"] == "wrong":
+        key = arm_amp_item["potential_health_issues"]
+        if key in PROBLEM_RESOURCES:
+            arm_amp_item["articles"] = PROBLEM_RESOURCES[key]["articles"]
+            arm_amp_item["exercises"] = PROBLEM_RESOURCES[key]["exercises"]
+        else:
+            arm_amp_item["articles"] = []
+            arm_amp_item["exercises"] = []
+    else:
+        arm_amp_item["articles"] = []
+        arm_amp_item["exercises"] = []
 
     analysis_categories.append(arm_amp_item)
 
@@ -644,12 +917,14 @@ def main():
 
     # 3) Convert list-based categories to a dict keyed by each category title
     analysis_categories_dict = {
-        cat["title"]: {
-            "status": cat["status"],
-            "issue_description": cat["issue_description"],
-            "potential_health_issues": cat["potential_health_issues"]
-        }
-        for cat in results["analysis_categories"]
+    cat["title"]: {
+        "status": cat["status"],
+        "issue_description": cat["issue_description"],
+        "potential_health_issues": cat["potential_health_issues"],
+        "articles": cat.get("articles", []),
+        "exercises": cat.get("exercises", [])
+    }
+        for cat in results["analysis_categories"]  # <-- use results["analysis_categories"] here
     }
 
     # 3) Structure JSON response properly
