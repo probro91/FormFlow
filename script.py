@@ -270,7 +270,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
 
     # Lower the forward tilt threshold from 25 to 20
     avg_head_angle = np.mean(head_angles) if head_angles else 0
-    if avg_head_angle > 20:
+    if avg_head_angle < 135:
         head_feedback = "Head is tilted/forward"
     else:
         head_feedback = "Head position looks good"
