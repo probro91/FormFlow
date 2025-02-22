@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import os
 import requests
@@ -5,6 +7,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import sys
+import json
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
@@ -13,8 +16,7 @@ load_dotenv()
 
 # Retrieve API Key securely from environment variables
 claude_api_key = os.environ.get("CLAUDE_API_KEY")
- # Replace with your key if testing locally
-
+# Replace with your key if testing locally
 
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
@@ -22,7 +24,6 @@ mp_drawing_styles = mp.solutions.drawing_styles
 
 # Initialize Anthropic Client
 client = Anthropic(api_key=claude_api_key)
-############################
 
 
 ##########################################
@@ -35,7 +36,7 @@ def call_claude_coach(analysis_categories):
     """
     if not claude_api_key:
         print("Claude API Key is missing! Set CLAUDE_API_KEY as an environment variable.")
-        return "Sorry, I couldn’t get additional coach advice from Claude."
+        return {"error": "Claude API Key is missing"}
 
     # Format categories for the prompt
     formatted_issues = ""
@@ -48,32 +49,22 @@ def call_claude_coach(analysis_categories):
     # Construct structured prompt
     prompt = f"""
     You are a professional running coach analyzing an athlete’s running form.
-    The following categories were evaluated, and areas needing
-improvement are identified.
+    The following categories were evaluated...
 
     ### **Running Form Analysis Results**
     {formatted_issues}
 
-    ### **Coaching Instructions**
-    - If a category is marked as **"wrong"**, provide a **detailed
-explanation** on how to improve.
-    - If a category is marked as **"right"**, provide **positive
-reinforcement**.
-    - Keep responses **clear, motivational, and practical**.
-    - Provide **one structured sentence per category** with concise advice.
+    ### **IMPORTANT**:
+    1. **Output must be in valid JSON**.
 
-    **Example Output Format:**
-    - **Head Position**: Keep your gaze forward and relax your neck to
-avoid excessive strain.
-    - **Knee Drive**: Incorporate high-knee drills to improve power
-and efficiency.
-    - **Cadence**: Your cadence is slightly high (~201.9 SPM). Ensure
-you are not taking excessively short steps and focus on maintaining
-rhythm.
-
-    Provide your response now.
+    **Example JSON structure**:
+    ```json
+    {{
+    "Head Position": "Keep your gaze forward and relax your neck to avoid excessive strain.",
+    "Knee Drive": "Incorporate high-knee drills to improve power and efficiency.",
+    "Cadence": "Your cadence is slightly high (~201.9 SPM). Ensure you are not taking excessively short steps."
+    }}
     """
-
     try:
         message = client.messages.create(
             model="claude-3-5-sonnet-20241022",
@@ -81,11 +72,20 @@ rhythm.
             messages=[{"role": "user", "content": prompt}]
         )
 
-        # Extract the content from `message.content`
-        return message.content if hasattr(message, "content") else "Claude returned an unexpected response format."
+        # Here is where you replace the old return statement
+        if hasattr(message, "content"):
+            try:
+                return {"claude_suggestions": message.content[0].text}
+            except json.JSONDecodeError:
+                return {"error": "Claude did not return valid JSON"}
+        else:
+            return {"error": "Claude response format issue"}
+
     except Exception as e:
         print(f"Error calling Claude: {e}")
-        return "Sorry, I couldn’t get additional coach advice from Claude."
+        return {"error": "Claude API request failed"}
+
+
 
 
 ############################
@@ -109,7 +109,7 @@ def calculate_angle_2d(a, b, c):
     bc = c - b
 
     cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    cosine_angle = np.clip(cosine_angle, -1.0, 1.0)  # Avoid numerical issues
+    cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
     angle = np.degrees(np.arccos(cosine_angle))
     return angle
 
@@ -134,10 +134,21 @@ def moving_average(array, window_size=5):
     cumsum = np.cumsum(np.insert(array, 0, 0))
     return (cumsum[window_size:] - cumsum[:-window_size]) / float(window_size)
 
+def detect_strikes_using_velocity(y_positions, vel_threshold=0.0005):
+    """
+    Return indices where velocity crosses from negative to positive.
+    y_positions is 1D array of foot Y-coordinates.
+    """
+    strikes = []
+    velocities = np.diff(y_positions)
+    for i in range(1, len(velocities)):
+        if velocities[i-1] < -vel_threshold and velocities[i] > vel_threshold:
+            strikes.append(i)
+    return strikes
+
 def detect_local_minima(data, delta=0.005):
     """
-    Return indices of local minima in 'data'.
-    'delta' is a threshold to avoid minor jitters.
+    Return indices of local minima with threshold delta.
     """
     minima_indices = []
     for i in range(1, len(data) - 1):
@@ -146,24 +157,11 @@ def detect_local_minima(data, delta=0.005):
                 minima_indices.append(i)
     return minima_indices
 
+
 #############################
 # Main Analysis Function
 #############################
 def analyze_running_form(video_path, output_path="output_traced.mp4"):
-    """
-    1) Reads video with OpenCV
-    2) Uses MediaPipe Pose to:
-       - Draw pose landmarks (skeleton) on each frame
-       - Track posture, cadence, arm swing crossing
-       - Detect foot strike type (heel vs forefoot)
-       - Check spine alignment, head position, knee height
-       - Estimate stride length
-       - Estimate arm swing amplitude
-    3) Writes traced frames to 'output_path'
-    4) Produces summary feedback (WITHOUT feedback_items)
-    """
-
-    # Open the video capture
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         print(f"Error: cannot open video {video_path}")
@@ -175,11 +173,9 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     duration_sec = total_frames / fps if fps > 0 else 1
 
-    # Prepare output video writer
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or 'XVID'
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out_writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
-    # Mediapipe Pose
     pose_estimator = mp_pose.Pose(
         static_image_mode=False,
         model_complexity=1,
@@ -215,7 +211,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
             break
         frame_count += 1
 
-        # Convert BGR -> RGB for MediaPipe
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose_estimator.process(frame_rgb)
 
@@ -315,15 +310,18 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     posture_right = posture_feedback(avg_right_angle)
 
     smoothed_left_idx_y = moving_average(left_foot_index_y, window_size=5)
-    left_minima = detect_local_minima(smoothed_left_idx_y, delta=0.003)
-
     smoothed_right_idx_y = moving_average(right_foot_index_y, window_size=5)
-    right_minima = detect_local_minima(smoothed_right_idx_y, delta=0.003)
 
-    total_foot_strikes = len(left_minima) + len(right_minima)
+    left_vel_strikes = detect_strikes_using_velocity(smoothed_left_idx_y)
+    right_vel_strikes = detect_strikes_using_velocity(smoothed_right_idx_y)
+    total_foot_strikes = len(left_vel_strikes) + len(right_vel_strikes)
+
+    left_minima = detect_local_minima(smoothed_left_idx_y, delta=0.003)
+    right_minima = detect_local_minima(smoothed_right_idx_y, delta=0.003)
 
     left_heel_strikes = 0
     right_heel_strikes = 0
+
     for i in left_minima:
         if i < len(left_heel_y):
             if left_heel_y[i] >= left_foot_index_y[i]:
@@ -335,9 +333,10 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
 
     total_heel_strikes = left_heel_strikes + right_heel_strikes
     if total_foot_strikes > 0:
-        heel_strike_ratio = total_heel_strikes / float(total_foot_strikes)
+        heel_strike_ratio = total_heel_strikes / float(len(left_minima) + len(right_minima))
     else:
         heel_strike_ratio = 0.0
+
     spm = total_foot_strikes / (duration_sec / 60.0) if total_foot_strikes > 0 else 0.0
 
     avg_spine_angle = np.mean(spine_angles) if spine_angles else 0
@@ -354,7 +353,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         head_feedback = "Head position looks good"
 
     def knee_drive_feedback(val):
-
         # If val > 0.30 => 'Very high knee lift'
         # If val > 0.15 => 'Good knee height'
         # else => 'Low knee lift'
@@ -381,12 +379,17 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     max_left_arm_amp = np.max(left_arm_distances) if left_arm_distances else 0
     max_right_arm_amp = np.max(right_arm_distances) if right_arm_distances else 0
     excessive_arm_swing = False
+    not_enough_arm_swing = False
     arm_swing_comment = ""
-    if max_left_arm_amp > 0.25 or max_right_arm_amp > 0.25:
+
+    if max_left_arm_amp > 0.1 or max_right_arm_amp > 0.1:
         excessive_arm_swing = True
-        arm_swing_comment = "Arms swing quite wide from the shoulders."
+        arm_swing_comment = "Arms swing amplitude is too great."
+    elif max_left_arm_amp < 0.045 and max_right_arm_amp < 0.045:
+        not_enough_arm_swing = True
+        arm_swing_comment = "Arm swing amplitude is not enough."
     else:
-        arm_swing_comment = "Arm swing amplitude looks reasonable."
+        arm_swing_comment = "Arm swing amplitude looks good."
 
     feedback_messages = []
 
@@ -405,14 +408,11 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "low" in right_knee_feedback.lower() or "very" in right_knee_feedback.lower()):
         feedback_messages.append(f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}")
 
-    if spm < 160:
-        feedback_messages.append("Consider increasing cadence slightly (~170–180 SPM).")
-    elif spm > 200:
-        feedback_messages.append("Cadence might be unusually high. Ensure you're not overstraining.")
-
-
     if excessive_arm_swing:
-        feedback_messages.append("You may be swinging your arms too widely—focus on more compact arm drive.")
+        feedback_messages.append("You may be swinging your arms too far on more compact arm drive.")
+
+    if not_enough_arm_swing:
+        feedback_messages.append("Increase arm swing amplitude slightly for more power and balance.")
 
     percent_heel = round(heel_strike_ratio * 100, 1)
     if total_foot_strikes > 0:
@@ -450,10 +450,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
 
     if "low knee lift" in " ".join(feedback_messages).lower():
         recommended_exercises.append("Knee drive drills (high-knee marching/running)")
-
-    if any("increase cadence" in msg.lower() for msg in feedback_messages):
-        recommended_exercises.append("Short interval runs focusing on quicker foot turnover")
-        recommended_exercises.append("Metronome training at ~180 BPM")
 
     if any("heel-striking" in msg.lower() for msg in feedback_messages):
         recommended_exercises.append("Short stride drills: land midfoot under center of mass")
@@ -516,7 +512,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "issue_description": "No issue",
         "potential_health_issues": "None"
     }
-    if ("low knee lift" in left_knee_feedback.lower() or
+    if ("low knee lift" in left_knee_feedback.lower() and
         "low knee lift" in right_knee_feedback.lower()):
         knee_item["status"] = "wrong"
         knee_item["issue_description"] = f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}"
@@ -527,23 +523,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         knee_item["issue_description"] = f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}"
         knee_item["potential_health_issues"] = "Could cause extra energy expenditure"
     analysis_categories.append(knee_item)
-
-    # CADENCE
-    cadence_item = {
-        "title": "Cadence",
-        "status": "right",
-        "issue_description": "No issue",
-        "potential_health_issues": "None"
-    }
-    if spm < 160:
-        cadence_item["status"] = "wrong"
-        cadence_item["issue_description"] = f"Low cadence (~{spm:.1f} SPM)"
-        cadence_item["potential_health_issues"] = "Greater impact per stride, risk of injuries"
-    elif spm > 200:
-        cadence_item["status"] = "wrong"
-        cadence_item["issue_description"] = f"High cadence (~{spm:.1f} SPM)"
-        cadence_item["potential_health_issues"] = "Possible overexertion or inefficiency"
-    analysis_categories.append(cadence_item)
 
     # FOOT STRIKE
     foot_item = {
@@ -594,7 +573,25 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         arm_amp_item["status"] = "wrong"
         arm_amp_item["issue_description"] = "Excessive horizontal arm swing"
         arm_amp_item["potential_health_issues"] = "Shoulder/neck fatigue, wasted energy"
+
+    if not_enough_arm_swing:
+        # If both happen, last sets "status" again. If you want them separate, add separate category.
+        arm_amp_item["status"] = "wrong"
+        arm_amp_item["issue_description"] = "Insufficient arm swing causing reduced balance, less power in stride"
+        if arm_amp_item["potential_health_issues"] == "None":
+            arm_amp_item["potential_health_issues"] = "Less balance, less power"
+        else:
+            arm_amp_item["potential_health_issues"] += ", plus reduced balance/power"
+
     analysis_categories.append(arm_amp_item)
+
+    # Calculate a "score" out of 100 based on how many categories are "wrong"
+    total_cats = len(analysis_categories)
+    wrong_count = sum(1 for cat in analysis_categories if cat["status"] == "wrong")
+
+    # Simple approach: each wrong category deducts a fraction from 100.
+    raw_score = 100 * (1 - wrong_count / total_cats)
+    form_score = max(0, min(100, round(raw_score)))
 
     results = {
         "duration_sec": round(duration_sec, 2),
@@ -621,10 +618,12 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "arm_swing_amplitude_comment": arm_swing_comment,
         "recommended_exercises": recommended_exercises,
         "analysis_categories": analysis_categories,
+        "form_score": form_score,  # Our new form score
         "traced_video_path": output_path
     }
 
     return results
+
 ##################
 # Main Entry Point
 ##################
@@ -633,32 +632,84 @@ def main():
         description="Analyze running form, then get Claude's coach advice."
     )
     parser.add_argument("--video", type=str, required=True, help="Path to the input video file (e.g. video.mp4).")
-    parser.add_argument("--output", type=str,
-default="output_traced.mp4", help="Path to the output traced video.")
+    parser.add_argument("--output", type=str, default="output_traced.mp4", help="Path to the output traced video.")
     args = parser.parse_args()
 
-    # 1) Analyze
+    # 1) Analyze the running form
     results = analyze_running_form(args.video, args.output)
 
     # 2) Get Claude Coach Suggestions
-    # We call 'call_claude_coach' with the 'analysis_categories'
     claude_suggestions = call_claude_coach(results["analysis_categories"])
-    results["claude_suggestions"] = claude_suggestions
+    results.update(claude_suggestions)
 
-    # 3) Print out analysis
-    print("\n--- Running Form Analysis ---\n")
-    for k, v in results.items():
-        if k == "analysis_categories":
-            print("analysis_categories:")
-            for cat in v:
-                print(f"  - {cat}")
-        elif k == "claude_suggestions":
-            print("\n--- Claude Coach Advice ---\n")
-            print(v)
-        else:
-            print(f"{k}: {v}")
+    # 3) Convert list-based categories to a dict keyed by each category title
+    analysis_categories_dict = {
+        cat["title"]: {
+            "status": cat["status"],
+            "issue_description": cat["issue_description"],
+            "potential_health_issues": cat["potential_health_issues"]
+        }
+        for cat in results["analysis_categories"]
+    }
 
-    print("\nAnalysis Complete!\n")
+    # 3) Structure JSON response properly
+    response = {
+        "statusCode": 200,
+        "body": {
+            "form_score": results["form_score"],
+            "duration": {
+                "seconds": results["duration_sec"]
+            },
+            "angles": {
+                "average_left_side": results["average_left_side_angle"],
+                "average_right_side": results["average_right_side_angle"]
+            },
+            "posture": {
+                "left": results["posture_left"],
+                "right": results["posture_right"]
+            },
+            "foot_strike": {
+                "total_strikes": results["foot_strikes_detected"],
+                "heel_strikes": results["heel_strikes_detected"],
+                "heel_strike_ratio": results["heel_strike_ratio_percent"]
+            },
+            "cadence": {
+                "steps_per_minute": results["estimated_cadence_spm"]
+            },
+            "spine_alignment": {
+                "degrees": results["spine_alignment_degs"]
+            },
+            "head_position": {
+                "degrees": results["head_position_degs"]
+            },
+            "knee_drive": {
+                "left": {
+                    "height": results["left_knee_height"],
+                    "feedback": results["left_knee_feedback"]
+                },
+                "right": {
+                    "height": results["right_knee_height"],
+                    "feedback": results["right_knee_feedback"]
+                }
+            },
+            "stride": {
+                "feedback": results["stride_feedback"],
+                "average_length": results["avg_stride_length"]
+            },
+            "arm_swing": {
+                "left_amplitude": results["max_left_arm_amplitude"],
+                "right_amplitude": results["max_right_arm_amplitude"],
+                "comment": results["arm_swing_amplitude_comment"]
+            },
+            "recommended_exercises": results["recommended_exercises"],
+            "analysis_categories": analysis_categories_dict,
+            "traced_video_path": results["traced_video_path"],
+            "claude_suggestions": results["claude_suggestions"]
+        }
+    }
+    
+    # 4) Print structured JSON output
+    print(json.dumps(response, indent=2))
 
 if __name__ == "__main__":
     main()
