@@ -43,7 +43,6 @@ def vector_angle_with_vertical(a, b):
     """
     a, b = np.array(a), np.array(b)
     vec = b - a
-    # A vertical vector might be (0, 1). We'll compare with that.
     vertical = np.array([0, 1])
     cosine_angle = np.dot(vec, vertical) / (np.linalg.norm(vec) * np.linalg.norm(vertical))
     cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
@@ -72,7 +71,6 @@ def detect_local_minima(data, delta=0.005):
 #############################
 # Main Analysis Function
 #############################
-
 def analyze_running_form(video_path, output_path="output_traced.mp4"):
     """
     1) Reads video with OpenCV
@@ -84,7 +82,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
        - Estimate stride length
        - Estimate arm swing amplitude
     3) Writes traced frames to 'output_path'
-    4) Produces summary feedback
+    4) Produces summary feedback (WITHOUT feedback_items)
     """
 
     # Open the video capture
@@ -112,31 +110,26 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         min_tracking_confidence=0.5
     )
 
-    # 1) For posture angles
     left_side_angles = []
     right_side_angles = []
 
-    # For foot strike detection
     left_foot_index_y = []
     left_heel_y = []
     right_foot_index_y = []
     right_heel_y = []
 
-    # Arm crossing
     arm_cross_count_left = 0
     arm_cross_count_right = 0
     frame_count = 0
 
-    # Additional checks
     spine_angles = []
     head_angles = []
     left_knee_drive = []
     right_knee_drive = []
 
-    # **New**: Stride length & arm swing amplitude
-    stride_distances = []  # distance between L & R foot each frame
-    left_arm_distances = []  # horizontal distance L wrist to L shoulder
-    right_arm_distances = [] # horizontal distance R wrist to R shoulder
+    stride_distances = []
+    left_arm_distances = []
+    right_arm_distances = []
 
     while True:
         success, frame = cap.read()
@@ -151,11 +144,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         if results.pose_landmarks:
             lm = results.pose_landmarks.landmark
 
-            # Landmark indices (Mediapipe Pose):
-            # L side: 11 shoulder, 23 hip, 25 knee, 29 heel, 31 foot_index
-            # R side:12 shoulder,24 hip,26 knee, 30 heel, 32 foot_index
-            # Wrists: 15 (L),16 (R)
-            # Nose: 0
             left_shoulder = (lm[11].x, lm[11].y)
             right_shoulder = (lm[12].x, lm[12].y)
             left_hip = (lm[23].x, lm[23].y)
@@ -172,7 +160,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
             left_wrist = (lm[15].x, lm[15].y)
             right_wrist = (lm[16].x, lm[16].y)
 
-            # Mid-shoulder, mid-hip
             mid_shoulder = (
                 (left_shoulder[0] + right_shoulder[0]) / 2.0,
                 (left_shoulder[1] + right_shoulder[1]) / 2.0
@@ -182,49 +169,40 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
                 (left_hip[1] + right_hip[1]) / 2.0
             )
 
-            # A) Posture angles (shoulder-hip-knee)
             angle_left_side  = calculate_angle_2d(left_shoulder, left_hip, left_knee_pt)
             angle_right_side = calculate_angle_2d(right_shoulder, right_hip, right_knee_pt)
             left_side_angles.append(angle_left_side)
             right_side_angles.append(angle_right_side)
 
-            # B) Foot Y data
             left_foot_index_y.append(left_foot_idx[1])
             left_heel_y.append(left_heel_pt[1])
             right_foot_index_y.append(right_foot_idx[1])
             right_heel_y.append(right_heel_pt[1])
 
-            # C) Arm crossing check
             mid_shoulder_x = mid_shoulder[0]
             if left_wrist[0] > mid_shoulder_x:
                 arm_cross_count_left += 1
             if right_wrist[0] < mid_shoulder_x:
                 arm_cross_count_right += 1
 
-            # D) Spine alignment
             spine_angle = vector_angle_with_vertical(mid_shoulder, mid_hip)
             spine_angles.append(spine_angle)
 
-            # E) Head position
             head_angle = vector_angle_with_vertical(mid_shoulder, nose_pt)
             head_angles.append(head_angle)
 
-            # F) Knee height
-            left_knee_height = (left_hip[1] - left_knee_pt[1])
-            right_knee_height = (right_hip[1] - right_knee_pt[1])
-            left_knee_drive.append(left_knee_height)
-            right_knee_drive.append(right_knee_height)
+            # Use absolute difference so we never get negatives:
+            raw_left_knee = left_hip[1] - left_knee_pt[1]
+            raw_right_knee = right_hip[1] - right_knee_pt[1]
+            left_knee_drive.append(abs(raw_left_knee))
+            right_knee_drive.append(abs(raw_right_knee))
 
-            # **New**: Stride length
             dist_feet = distance_2d(left_foot_idx, right_foot_idx)
             stride_distances.append(dist_feet)
 
-            # **New**: Arm swing amplitude (horizontal distance from shoulder)
-            # (This is naive—just the x-axis difference)
             left_arm_distances.append(abs(left_wrist[0] - left_shoulder[0]))
             right_arm_distances.append(abs(right_wrist[0] - right_shoulder[0]))
 
-            # Draw landmarks on the frame
             mp_drawing.draw_landmarks(
                 frame,
                 results.pose_landmarks,
@@ -232,22 +210,15 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
                 landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
             )
 
-        # Write the traced frame to output
         out_writer.write(frame)
 
-    # Release resources
     cap.release()
     out_writer.release()
     pose_estimator.close()
 
-    ##################################################
-    # Post-processing & Feedback
-    ##################################################
-
-    # -- Duration & frames
     if duration_sec <= 0:
         duration_sec = 1.0
-    # Basic posture
+
     avg_left_angle = np.mean(left_side_angles) if left_side_angles else 0
     avg_right_angle = np.mean(right_side_angles) if right_side_angles else 0
 
@@ -265,7 +236,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     posture_left = posture_feedback(avg_left_angle)
     posture_right = posture_feedback(avg_right_angle)
 
-    # -- Cadence (foot strikes)
     smoothed_left_idx_y = moving_average(left_foot_index_y, window_size=5)
     left_minima = detect_local_minima(smoothed_left_idx_y, delta=0.003)
 
@@ -286,54 +256,43 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
                 right_heel_strikes += 1
 
     total_heel_strikes = left_heel_strikes + right_heel_strikes
-    spm = total_foot_strikes / (duration_sec / 60.0)  # steps per minute
+    if total_foot_strikes > 0:
+        heel_strike_ratio = total_heel_strikes / float(total_foot_strikes)
+    else:
+        heel_strike_ratio = 0.0
+    spm = total_foot_strikes / (duration_sec / 60.0) if total_foot_strikes > 0 else 0.0
 
-    # -- Arm crossing frequency
-    CROSS_THRESHOLD_RATIO = 0.20
-    crossing_ratio_left = arm_cross_count_left / frame_count if frame_count > 0 else 0
-    crossing_ratio_right = arm_cross_count_right / frame_count if frame_count > 0 else 0
-
-    arm_swing_feedback = []
-    if crossing_ratio_left > CROSS_THRESHOLD_RATIO:
-        arm_swing_feedback.append("Left arm crosses midline too often")
-    if crossing_ratio_right > CROSS_THRESHOLD_RATIO:
-        arm_swing_feedback.append("Right arm crosses midline too often")
-    if not arm_swing_feedback:
-        arm_swing_feedback.append("Arm swing looks okay")
-
-    # -- Spine
     avg_spine_angle = np.mean(spine_angles) if spine_angles else 0
     if avg_spine_angle < 10:
         spine_feedback = "Spine looks upright"
     else:
         spine_feedback = f"Spine angled ~{int(avg_spine_angle)}° from vertical"
 
-    # -- Head
+    # Lower the forward tilt threshold from 25 to 20
     avg_head_angle = np.mean(head_angles) if head_angles else 0
-    if avg_head_angle > 25:
+    if avg_head_angle > 20:
         head_feedback = "Head is tilted/forward"
     else:
         head_feedback = "Head position looks good"
 
-    # -- Knee
-    avg_left_knee_drive = np.mean(left_knee_drive) if left_knee_drive else 0
-    avg_right_knee_drive = np.mean(right_knee_drive) if right_knee_drive else 0
-
     def knee_drive_feedback(val):
-        # The smaller the difference (hipY - kneeY), the higher the knee.
-        if val < 0.05:
+
+        # If val > 0.30 => 'Very high knee lift'
+        # If val > 0.15 => 'Good knee height'
+        # else => 'Low knee lift'
+        if val > 0.30:
             return "Very high knee lift"
-        elif val <= 0.15:
+        elif val > 0.15:
             return "Good knee height"
         else:
             return "Low knee lift"
 
+    avg_left_knee_drive = np.mean(left_knee_drive) if left_knee_drive else 0
+    avg_right_knee_drive = np.mean(right_knee_drive) if right_knee_drive else 0
     left_knee_feedback = knee_drive_feedback(avg_left_knee_drive)
     right_knee_feedback = knee_drive_feedback(avg_right_knee_drive)
 
-    # **New**: Stride length analysis
     avg_stride_length = np.mean(stride_distances) if stride_distances else 0
-    # Arbitrary thresholds in normalized coords—adjust as needed
     if avg_stride_length < 0.1:
         stride_feedback = f"Short stride (avg ~{avg_stride_length:.2f})"
     elif avg_stride_length > 0.3:
@@ -341,13 +300,8 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         stride_feedback = f"Good stride length (avg ~{avg_stride_length:.2f})"
 
-    # **New**: Arm swing amplitude
-    # We'll measure the maximum horizontal distance from the shoulder for each arm
     max_left_arm_amp = np.max(left_arm_distances) if left_arm_distances else 0
     max_right_arm_amp = np.max(right_arm_distances) if right_arm_distances else 0
-
-    # Example threshold: 0.25 in normalized coords => “too wide”
-    # Tweak as needed for your camera angle, runner’s body proportions, etc.
     excessive_arm_swing = False
     arm_swing_comment = ""
     if max_left_arm_amp > 0.25 or max_right_arm_amp > 0.25:
@@ -356,48 +310,34 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         arm_swing_comment = "Arm swing amplitude looks reasonable."
 
-    ################################
-    # Compile overall feedback
-    ################################
     feedback_messages = []
 
-    # Basic posture
-    if "forward" in posture_left or "forward" in posture_right:
+    if "forward" in posture_left.lower() or "forward" in posture_right.lower():
         feedback_messages.append("Try to maintain a more upright torso to reduce forward lean.")
-    if "backward" in posture_left or "backward" in posture_right:
+    if "backward" in posture_left.lower() or "backward" in posture_right.lower():
         feedback_messages.append("You may be leaning backward. Keep shoulders over hips for efficiency.")
 
-    # Spine
-    if "angled" in spine_feedback:
+    if "angled" in spine_feedback.lower():
         feedback_messages.append(spine_feedback)
 
-    # Head
-    if "tilted" in head_feedback:
+    if "tilted" in head_feedback.lower():
         feedback_messages.append(head_feedback)
 
-    # Knee
-    if any(keyword in left_knee_feedback for keyword in ["Low", "Very"]) \
-       or any(keyword in right_knee_feedback for keyword in ["Low", "Very"]):
+    if ("low" in left_knee_feedback.lower() or "very" in left_knee_feedback.lower() or
+        "low" in right_knee_feedback.lower() or "very" in right_knee_feedback.lower()):
         feedback_messages.append(f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}")
 
-    # Cadence
     if spm < 160:
         feedback_messages.append("Consider increasing cadence slightly (~170–180 SPM).")
     elif spm > 200:
         feedback_messages.append("Cadence might be unusually high. Ensure you're not overstraining.")
 
-    # Arm crossing
-    if "midline too often" in " ".join(arm_swing_feedback):
-        feedback_messages.append("Try to keep arm swing forward-and-back, not crossing your chest.")
-    # Arm amplitude
+
     if excessive_arm_swing:
         feedback_messages.append("You may be swinging your arms too widely—focus on more compact arm drive.")
 
-    # Heel strike ratio
-    heel_strike_ratio = 0.0
+    percent_heel = round(heel_strike_ratio * 100, 1)
     if total_foot_strikes > 0:
-        heel_strike_ratio = total_heel_strikes / float(total_foot_strikes)
-        percent_heel = round(heel_strike_ratio * 100, 1)
         if percent_heel > 70:
             feedback_messages.append(
                 f"Predominantly heel-striking (~{percent_heel}%). Consider more midfoot to reduce impact."
@@ -413,52 +353,171 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         feedback_messages.append("No foot strikes detected—video too short or detection issue?")
 
-    # Stride length
     feedback_messages.append(stride_feedback)
 
-    # If no specific issues
     if not any(msg for msg in feedback_messages if msg != stride_feedback):
-        # Means we only added stride_feedback
         feedback_messages.append("Great form overall! Keep up the good work.")
 
-    ##############################
-    # Recommended Exercises
-    ##############################
     recommended_exercises = []
 
-    if any("forward lean" in msg for msg in feedback_messages):
+    if any("forward lean" in msg.lower() for msg in feedback_messages):
         recommended_exercises.append("Core exercises (planks) to support upright posture")
         recommended_exercises.append("Wall stands or leaning drills to maintain neutral spine")
 
-    if "spine angled" in " ".join(feedback_messages):
+    if "spine angled" in " ".join(feedback_messages).lower():
         recommended_exercises.append("Spine mobility & stability exercises (cat-camel, bird-dog, etc.)")
 
-    if "tilted" in " ".join(feedback_messages):
+    if "tilted" in " ".join(feedback_messages).lower():
         recommended_exercises.append("Neck stretches and posture awareness drills. Keep eyes forward.")
 
-    if "Low knee lift" in " ".join(feedback_messages):
+    if "low knee lift" in " ".join(feedback_messages).lower():
         recommended_exercises.append("Knee drive drills (high-knee marching/running)")
 
-    if any("increase cadence" in msg for msg in feedback_messages):
+    if any("increase cadence" in msg.lower() for msg in feedback_messages):
         recommended_exercises.append("Short interval runs focusing on quicker foot turnover")
         recommended_exercises.append("Metronome training at ~180 BPM")
 
-    if any("heel-striking" in msg for msg in feedback_messages):
+    if any("heel-striking" in msg.lower() for msg in feedback_messages):
         recommended_exercises.append("Short stride drills: land midfoot under center of mass")
         recommended_exercises.append("Light barefoot strides (on a safe surface) to encourage softer foot strike")
 
-    if "You may be swinging your arms too widely" in " ".join(feedback_messages):
-        recommended_exercises.append("Arm swing drills: Practice running in place with elbows ~90° and small range")
-
-    if "Short stride" in stride_feedback:
+    if "short stride" in stride_feedback.lower():
         recommended_exercises.append("Drills focusing on slightly longer push-off and extension")
-    elif "Long stride" in stride_feedback:
+    elif "long stride" in stride_feedback.lower():
         recommended_exercises.append("Overstriding fix: emphasize landing with foot under hips")
 
     if not recommended_exercises:
         recommended_exercises = ["No major issues detected. Keep training consistently!"]
 
-    # Final results
+    analysis_categories = []
+
+    # POSTURE
+    posture_item = {
+        "title": "Posture",
+        "status": "right",
+        "issue_description": "No issue",
+        "potential_health_issues": "None"
+    }
+    if ("forward" in posture_left.lower() or "forward" in posture_right.lower() or
+        "backward" in posture_left.lower() or "backward" in posture_right.lower()):
+        posture_item["status"] = "wrong"
+        posture_item["issue_description"] = f"Runner is {posture_left} on left, {posture_right} on right"
+        posture_item["potential_health_issues"] = "Excess strain on lower back or hips"
+    analysis_categories.append(posture_item)
+
+    # SPINE
+    spine_item = {
+        "title": "Spine Alignment",
+        "status": "right",
+        "issue_description": "No issue",
+        "potential_health_issues": "None"
+    }
+    if "angled" in spine_feedback.lower():
+        spine_item["status"] = "wrong"
+        spine_item["issue_description"] = spine_feedback
+        spine_item["potential_health_issues"] = "Can cause back pain or poor running economy"
+    analysis_categories.append(spine_item)
+
+    # HEAD
+    head_item = {
+        "title": "Head Position",
+        "status": "right",
+        "issue_description": "No issue",
+        "potential_health_issues": "None"
+    }
+    if "tilted" in head_feedback.lower():
+        head_item["status"] = "wrong"
+        head_item["issue_description"] = head_feedback
+        head_item["potential_health_issues"] = "Neck strain or upper back tension"
+    analysis_categories.append(head_item)
+
+    # KNEE DRIVE
+    knee_item = {
+        "title": "Knee Drive",
+        "status": "right",
+        "issue_description": "No issue",
+        "potential_health_issues": "None"
+    }
+    if ("low knee lift" in left_knee_feedback.lower() or
+        "low knee lift" in right_knee_feedback.lower()):
+        knee_item["status"] = "wrong"
+        knee_item["issue_description"] = f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}"
+        knee_item["potential_health_issues"] = "May reduce running efficiency"
+    elif ("very high knee lift" in left_knee_feedback.lower() or
+          "very high knee lift" in right_knee_feedback.lower()):
+        knee_item["status"] = "wrong"
+        knee_item["issue_description"] = f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}"
+        knee_item["potential_health_issues"] = "Could cause extra energy expenditure"
+    analysis_categories.append(knee_item)
+
+    # CADENCE
+    cadence_item = {
+        "title": "Cadence",
+        "status": "right",
+        "issue_description": "No issue",
+        "potential_health_issues": "None"
+    }
+    if spm < 160:
+        cadence_item["status"] = "wrong"
+        cadence_item["issue_description"] = f"Low cadence (~{spm:.1f} SPM)"
+        cadence_item["potential_health_issues"] = "Greater impact per stride, risk of injuries"
+    elif spm > 200:
+        cadence_item["status"] = "wrong"
+        cadence_item["issue_description"] = f"High cadence (~{spm:.1f} SPM)"
+        cadence_item["potential_health_issues"] = "Possible overexertion or inefficiency"
+    analysis_categories.append(cadence_item)
+
+    # FOOT STRIKE
+    foot_item = {
+        "title": "Foot Strike",
+        "status": "right",
+        "issue_description": "No issue",
+        "potential_health_issues": "None"
+    }
+    if percent_heel > 70:
+        foot_item["status"] = "wrong"
+        foot_item["issue_description"] = f"Predominantly heel-striking (~{percent_heel}% heel)"
+        foot_item["potential_health_issues"] = "Higher impact on knees and shins"
+    elif percent_heel > 30:
+        foot_item["status"] = "right"
+        foot_item["issue_description"] = f"Mixed foot strike (~{percent_heel}% heel)"
+        foot_item["potential_health_issues"] = "Generally okay, watch for any imbalance"
+    else:
+        foot_item["status"] = "right"
+        foot_item["issue_description"] = f"Mostly forefoot/midfoot (~{percent_heel}% heel)"
+        foot_item["potential_health_issues"] = "None"
+    analysis_categories.append(foot_item)
+
+    # STRIDE LENGTH
+    stride_item = {
+        "title": "Stride Length",
+        "status": "right",
+        "issue_description": "No issue",
+        "potential_health_issues": "None"
+    }
+    if "short stride" in stride_feedback.lower():
+        stride_item["status"] = "wrong"
+        stride_item["issue_description"] = stride_feedback
+        stride_item["potential_health_issues"] = "Reduced efficiency, possible overuse of calves"
+    elif "long stride" in stride_feedback.lower():
+        stride_item["status"] = "wrong"
+        stride_item["issue_description"] = stride_feedback
+        stride_item["potential_health_issues"] = "Overstriding can stress knees & hamstrings"
+    analysis_categories.append(stride_item)
+
+    # ARM SWING (Amplitude)
+    arm_amp_item = {
+        "title": "Arm Swing (Amplitude)",
+        "status": "right",
+        "issue_description": "No issue",
+        "potential_health_issues": "None"
+    }
+    if excessive_arm_swing:
+        arm_amp_item["status"] = "wrong"
+        arm_amp_item["issue_description"] = "Excessive horizontal arm swing"
+        arm_amp_item["potential_health_issues"] = "Shoulder/neck fatigue, wasted energy"
+    analysis_categories.append(arm_amp_item)
+
     results = {
         "duration_sec": round(duration_sec, 2),
         "average_left_side_angle": round(avg_left_angle, 2),
@@ -467,9 +526,8 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "posture_right": posture_right,
         "foot_strikes_detected": total_foot_strikes,
         "heel_strikes_detected": total_heel_strikes,
-        "heel_strike_ratio_percent": round(heel_strike_ratio * 100, 2),
+        "heel_strike_ratio_percent": percent_heel,
         "estimated_cadence_spm": round(spm, 2),
-        "arm_swing_feedback": arm_swing_feedback,
         "spine_alignment_degs": round(avg_spine_angle, 1),
         "head_position_degs": round(avg_head_angle, 1),
         "spine_feedback": spine_feedback,
@@ -483,8 +541,8 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "max_left_arm_amplitude": round(max_left_arm_amp, 3),
         "max_right_arm_amplitude": round(max_right_arm_amp, 3),
         "arm_swing_amplitude_comment": arm_swing_comment,
-        "feedback_messages": feedback_messages,
         "recommended_exercises": recommended_exercises,
+        "analysis_categories": analysis_categories,
         "traced_video_path": output_path
     }
 
@@ -493,7 +551,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
 ##################
 # Main Entry Point
 ##################
-
 def main():
     parser = argparse.ArgumentParser(
         description="Analyze running form (stride length, arm swing, posture, etc.) from a local video and produce a traced output."
@@ -506,7 +563,12 @@ def main():
 
     print("\n--- Running Form Analysis ---\n")
     for k, v in results.items():
-        print(f"{k}: {v}")
+        if k == "analysis_categories":
+            print("analysis_categories:")
+            for cat in v:
+                print(f"  - {cat}")
+        else:
+            print(f"{k}: {v}")
     print("\nAnalysis Complete!\n")
 
 if __name__ == "__main__":
