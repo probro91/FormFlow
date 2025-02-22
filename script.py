@@ -14,6 +14,13 @@ mp_drawing_styles = mp.solutions.drawing_styles
 # Utility / Helper Functions
 ############################
 
+def distance_2d(a, b):
+    """
+    Euclidean distance between two normalized 2D points (x, y).
+    """
+    a, b = np.array(a), np.array(b)
+    return np.linalg.norm(a - b)
+
 def calculate_angle_2d(a, b, c):
     """
     Calculate the angle (in degrees) formed by points A-B-C (2D).
@@ -36,7 +43,7 @@ def vector_angle_with_vertical(a, b):
     """
     a, b = np.array(a), np.array(b)
     vec = b - a
-    # A vertical vector might be (0, 1). We'll compare:
+    # A vertical vector might be (0, 1). We'll compare with that.
     vertical = np.array([0, 1])
     cosine_angle = np.dot(vec, vertical) / (np.linalg.norm(vec) * np.linalg.norm(vertical))
     cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
@@ -71,9 +78,11 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     1) Reads video with OpenCV
     2) Uses MediaPipe Pose to:
        - Draw pose landmarks (skeleton) on each frame
-       - Track posture, cadence, arm swing
+       - Track posture, cadence, arm swing crossing
        - Detect foot strike type (heel vs forefoot)
-       - Checks spine alignment, head position, knee height
+       - Check spine alignment, head position, knee height
+       - Estimate stride length
+       - Estimate arm swing amplitude
     3) Writes traced frames to 'output_path'
     4) Produces summary feedback
     """
@@ -113,17 +122,21 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     right_foot_index_y = []
     right_heel_y = []
 
-    # Arm swing
+    # Arm crossing
     arm_cross_count_left = 0
     arm_cross_count_right = 0
     frame_count = 0
 
     # Additional checks
-    # We'll track mid-shoulder and mid-hip for spine alignment
     spine_angles = []
-    head_angles = []  # Angle from mid-shoulder to nose vs. vertical
-    left_knee_drive = []  # measure knee (y) relative to hip (y)
+    head_angles = []
+    left_knee_drive = []
     right_knee_drive = []
+
+    # **New**: Stride length & arm swing amplitude
+    stride_distances = []  # distance between L & R foot each frame
+    left_arm_distances = []  # horizontal distance L wrist to L shoulder
+    right_arm_distances = [] # horizontal distance R wrist to R shoulder
 
     while True:
         success, frame = cap.read()
@@ -139,14 +152,10 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
             lm = results.pose_landmarks.landmark
 
             # Landmark indices (Mediapipe Pose):
-            # Left side: 11 shoulder, 23 hip, 25 knee, 29 heel, 31 foot_index
-            # Right side:12 shoulder,24 hip,26 knee, 30 heel, 32 foot_index
+            # L side: 11 shoulder, 23 hip, 25 knee, 29 heel, 31 foot_index
+            # R side:12 shoulder,24 hip,26 knee, 30 heel, 32 foot_index
             # Wrists: 15 (L),16 (R)
             # Nose: 0
-            # Mid-shoulder approx: average of (11,12)
-            # Mid-hip approx: average of (23,24)
-
-            # Basic 2D coords
             left_shoulder = (lm[11].x, lm[11].y)
             right_shoulder = (lm[12].x, lm[12].y)
             left_hip = (lm[23].x, lm[23].y)
@@ -163,7 +172,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
             left_wrist = (lm[15].x, lm[15].y)
             right_wrist = (lm[16].x, lm[16].y)
 
-            # Midpoints
+            # Mid-shoulder, mid-hip
             mid_shoulder = (
                 (left_shoulder[0] + right_shoulder[0]) / 2.0,
                 (left_shoulder[1] + right_shoulder[1]) / 2.0
@@ -179,7 +188,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
             left_side_angles.append(angle_left_side)
             right_side_angles.append(angle_right_side)
 
-            # B) Foot Y data for strike detection
+            # B) Foot Y data
             left_foot_index_y.append(left_foot_idx[1])
             left_heel_y.append(left_heel_pt[1])
             right_foot_index_y.append(right_foot_idx[1])
@@ -193,23 +202,27 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
                 arm_cross_count_right += 1
 
             # D) Spine alignment
-            # Angle between mid_shoulder->mid_hip and vertical
             spine_angle = vector_angle_with_vertical(mid_shoulder, mid_hip)
             spine_angles.append(spine_angle)
 
-            # E) Head position check
-            # Angle between mid_shoulder->nose and vertical
+            # E) Head position
             head_angle = vector_angle_with_vertical(mid_shoulder, nose_pt)
             head_angles.append(head_angle)
 
             # F) Knee height
-            # We'll measure difference in Y: hip.y - knee.y (normalized coords)
-            # Larger difference => knee is lower, smaller => knee is higher
-            # We'll store negative for "knee above hip" which is typically unusual in normal gait
             left_knee_height = (left_hip[1] - left_knee_pt[1])
             right_knee_height = (right_hip[1] - right_knee_pt[1])
             left_knee_drive.append(left_knee_height)
             right_knee_drive.append(right_knee_height)
+
+            # **New**: Stride length
+            dist_feet = distance_2d(left_foot_idx, right_foot_idx)
+            stride_distances.append(dist_feet)
+
+            # **New**: Arm swing amplitude (horizontal distance from shoulder)
+            # (This is naive—just the x-axis difference)
+            left_arm_distances.append(abs(left_wrist[0] - left_shoulder[0]))
+            right_arm_distances.append(abs(right_wrist[0] - right_shoulder[0]))
 
             # Draw landmarks on the frame
             mp_drawing.draw_landmarks(
@@ -228,10 +241,13 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     pose_estimator.close()
 
     ##################################################
-    # Post-processing: posture, cadence, arm swing, etc
+    # Post-processing & Feedback
     ##################################################
 
-    # -- Posture
+    # -- Duration & frames
+    if duration_sec <= 0:
+        duration_sec = 1.0
+    # Basic posture
     avg_left_angle = np.mean(left_side_angles) if left_side_angles else 0
     avg_right_angle = np.mean(right_side_angles) if right_side_angles else 0
 
@@ -258,11 +274,8 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
 
     total_foot_strikes = len(left_minima) + len(right_minima)
 
-    # For heel-strike detection
     left_heel_strikes = 0
     right_heel_strikes = 0
-
-    # We'll skip perfect alignment of smoothing offset for brevity
     for i in left_minima:
         if i < len(left_heel_y):
             if left_heel_y[i] >= left_foot_index_y[i]:
@@ -273,13 +286,9 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
                 right_heel_strikes += 1
 
     total_heel_strikes = left_heel_strikes + right_heel_strikes
+    spm = total_foot_strikes / (duration_sec / 60.0)  # steps per minute
 
-    if duration_sec > 0:
-        spm = total_foot_strikes / (duration_sec / 60.0)
-    else:
-        spm = 0.0
-
-    # -- Arm swing
+    # -- Arm crossing frequency
     CROSS_THRESHOLD_RATIO = 0.20
     crossing_ratio_left = arm_cross_count_left / frame_count if frame_count > 0 else 0
     crossing_ratio_right = arm_cross_count_right / frame_count if frame_count > 0 else 0
@@ -292,41 +301,26 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     if not arm_swing_feedback:
         arm_swing_feedback.append("Arm swing looks okay")
 
-    ###########################
-    # Spine, Head, Knee checks
-    ###########################
-
-    # Spine: We average the spine angle
-    # 0 deg => perfectly vertical, typical range for upright posture maybe < 10 deg
+    # -- Spine
     avg_spine_angle = np.mean(spine_angles) if spine_angles else 0
     if avg_spine_angle < 10:
         spine_feedback = "Spine looks upright"
     else:
         spine_feedback = f"Spine angled ~{int(avg_spine_angle)}° from vertical"
 
-    # Head: We average the head angle
-    # If too high or too low, we consider that "off" (this is approximate)
+    # -- Head
     avg_head_angle = np.mean(head_angles) if head_angles else 0
-    # Let's define if angle > 25 => possibly head is forward/down
-    # The sign isn't captured in an absolute angle, so we assume any large angle => tilt
     if avg_head_angle > 25:
         head_feedback = "Head is tilted/forward"
     else:
         head_feedback = "Head position looks good"
 
-    # Knee height:
-    # We'll measure the average difference hip.y - knee.y
-    # If the difference is small => knee is high.
-    # Typical difference might be ~0.1 - 0.3, depending on camera angle.
+    # -- Knee
     avg_left_knee_drive = np.mean(left_knee_drive) if left_knee_drive else 0
     avg_right_knee_drive = np.mean(right_knee_drive) if right_knee_drive else 0
 
     def knee_drive_feedback(val):
-        # The smaller the difference, the higher the knee (in normalized coords).
-        # We'll define thresholds:
-        # val < 0.05 => "very high knee"
-        # 0.05 <= val <= 0.15 => "good knee height"
-        # >0.15 => "low knee lift"
+        # The smaller the difference (hipY - kneeY), the higher the knee.
         if val < 0.05:
             return "Very high knee lift"
         elif val <= 0.15:
@@ -337,10 +331,34 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     left_knee_feedback = knee_drive_feedback(avg_left_knee_drive)
     right_knee_feedback = knee_drive_feedback(avg_right_knee_drive)
 
+    # **New**: Stride length analysis
+    avg_stride_length = np.mean(stride_distances) if stride_distances else 0
+    # Arbitrary thresholds in normalized coords—adjust as needed
+    if avg_stride_length < 0.1:
+        stride_feedback = f"Short stride (avg ~{avg_stride_length:.2f})"
+    elif avg_stride_length > 0.3:
+        stride_feedback = f"Long stride (avg ~{avg_stride_length:.2f})"
+    else:
+        stride_feedback = f"Good stride length (avg ~{avg_stride_length:.2f})"
+
+    # **New**: Arm swing amplitude
+    # We'll measure the maximum horizontal distance from the shoulder for each arm
+    max_left_arm_amp = np.max(left_arm_distances) if left_arm_distances else 0
+    max_right_arm_amp = np.max(right_arm_distances) if right_arm_distances else 0
+
+    # Example threshold: 0.25 in normalized coords => “too wide”
+    # Tweak as needed for your camera angle, runner’s body proportions, etc.
+    excessive_arm_swing = False
+    arm_swing_comment = ""
+    if max_left_arm_amp > 0.25 or max_right_arm_amp > 0.25:
+        excessive_arm_swing = True
+        arm_swing_comment = "Arms swing quite wide from the shoulders."
+    else:
+        arm_swing_comment = "Arm swing amplitude looks reasonable."
+
     ################################
     # Compile overall feedback
     ################################
-
     feedback_messages = []
 
     # Basic posture
@@ -358,7 +376,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         feedback_messages.append(head_feedback)
 
     # Knee
-    # We'll combine left & right to see if there's a consistent issue
     if any(keyword in left_knee_feedback for keyword in ["Low", "Very"]) \
        or any(keyword in right_knee_feedback for keyword in ["Low", "Very"]):
         feedback_messages.append(f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}")
@@ -369,16 +386,18 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     elif spm > 200:
         feedback_messages.append("Cadence might be unusually high. Ensure you're not overstraining.")
 
-    # Arm swing
+    # Arm crossing
     if "midline too often" in " ".join(arm_swing_feedback):
         feedback_messages.append("Try to keep arm swing forward-and-back, not crossing your chest.")
+    # Arm amplitude
+    if excessive_arm_swing:
+        feedback_messages.append("You may be swinging your arms too widely—focus on more compact arm drive.")
 
-    # Heel strike
+    # Heel strike ratio
     heel_strike_ratio = 0.0
     if total_foot_strikes > 0:
         heel_strike_ratio = total_heel_strikes / float(total_foot_strikes)
         percent_heel = round(heel_strike_ratio * 100, 1)
-
         if percent_heel > 70:
             feedback_messages.append(
                 f"Predominantly heel-striking (~{percent_heel}%). Consider more midfoot to reduce impact."
@@ -394,9 +413,13 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         feedback_messages.append("No foot strikes detected—video too short or detection issue?")
 
+    # Stride length
+    feedback_messages.append(stride_feedback)
+
     # If no specific issues
-    if not feedback_messages:
-        feedback_messages.append("Great form! Keep up the good work.")
+    if not any(msg for msg in feedback_messages if msg != stride_feedback):
+        # Means we only added stride_feedback
+        feedback_messages.append("Great form overall! Keep up the good work.")
 
     ##############################
     # Recommended Exercises
@@ -408,13 +431,13 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         recommended_exercises.append("Wall stands or leaning drills to maintain neutral spine")
 
     if "spine angled" in " ".join(feedback_messages):
-        recommended_exercises.append("Spine mobility and stability exercises (e.g., cat-camel, bird-dog)")
+        recommended_exercises.append("Spine mobility & stability exercises (cat-camel, bird-dog, etc.)")
 
     if "tilted" in " ".join(feedback_messages):
         recommended_exercises.append("Neck stretches and posture awareness drills. Keep eyes forward.")
 
     if "Low knee lift" in " ".join(feedback_messages):
-        recommended_exercises.append("Knee drive drills (e.g., high-knee marching/running)")
+        recommended_exercises.append("Knee drive drills (high-knee marching/running)")
 
     if any("increase cadence" in msg for msg in feedback_messages):
         recommended_exercises.append("Short interval runs focusing on quicker foot turnover")
@@ -424,7 +447,14 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         recommended_exercises.append("Short stride drills: land midfoot under center of mass")
         recommended_exercises.append("Light barefoot strides (on a safe surface) to encourage softer foot strike")
 
-    # If no recommended exercises, just say keep training
+    if "You may be swinging your arms too widely" in " ".join(feedback_messages):
+        recommended_exercises.append("Arm swing drills: Practice running in place with elbows ~90° and small range")
+
+    if "Short stride" in stride_feedback:
+        recommended_exercises.append("Drills focusing on slightly longer push-off and extension")
+    elif "Long stride" in stride_feedback:
+        recommended_exercises.append("Overstriding fix: emphasize landing with foot under hips")
+
     if not recommended_exercises:
         recommended_exercises = ["No major issues detected. Keep training consistently!"]
 
@@ -448,6 +478,11 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "right_knee_height": round(avg_right_knee_drive, 2),
         "left_knee_feedback": left_knee_feedback,
         "right_knee_feedback": right_knee_feedback,
+        "stride_feedback": stride_feedback,
+        "avg_stride_length": round(avg_stride_length, 3),
+        "max_left_arm_amplitude": round(max_left_arm_amp, 3),
+        "max_right_arm_amplitude": round(max_right_arm_amp, 3),
+        "arm_swing_amplitude_comment": arm_swing_comment,
         "feedback_messages": feedback_messages,
         "recommended_exercises": recommended_exercises,
         "traced_video_path": output_path
@@ -460,7 +495,9 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
 ##################
 
 def main():
-    parser = argparse.ArgumentParser(description="Analyze running form from a local video, including spine/head/knee checks, and produce a traced output video.")
+    parser = argparse.ArgumentParser(
+        description="Analyze running form (stride length, arm swing, posture, etc.) from a local video and produce a traced output."
+    )
     parser.add_argument("--video", type=str, required=True, help="Path to the local input video file (e.g. video.mp4).")
     parser.add_argument("--output", type=str, default="output_traced.mp4", help="Path to the output traced video.")
     args = parser.parse_args()
