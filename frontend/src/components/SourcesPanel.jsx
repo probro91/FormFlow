@@ -269,7 +269,7 @@ const SourcesPanel = ({
             
       <div style={{ opacity: loading ? 0.5 : 1 }}>
                 
-        <RunVideo videoUrl={videos.length > 0 ? videos[0] : null} />
+        <RunVideo processedVideos={processedVideos} />
               
       </div>
           

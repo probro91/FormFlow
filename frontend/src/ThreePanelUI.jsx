@@ -14,6 +14,7 @@ const ThreePanelUI = () => {
   const [strideLengthData, setStrideLengthData] = useState(null);
   const [overallScoreData, setOverallScoreData] = useState(null);
   const [stats, setStats] = useState(null);
+  const [processedVideos, setProcessedVideos] = useState(null);
 
   const panels = [
     {

@@ -7,7 +7,8 @@ import {
   FaFire,
 } from "react-icons/fa";
 
-const RunVideo = ({ videoUrl }) => {
+const RunVideo = ({ processedVideos }) => {
+  console.log(processedVideos);
   const [isBackgroundVisible, setIsBackgroundVisible] = useState(true);
   const [selectedMode, setSelectedMode] = useState("default"); // Default mode selected
 
