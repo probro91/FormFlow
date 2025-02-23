@@ -12,9 +12,11 @@ const ThreePanelUI = () => {
   // State for TipsPanel
   const [cadenceData, setCadenceData] = useState(null); // Could be populated from real data
   const [strideLengthData, setStrideLengthData] = useState(null);
-  const [overallScoreData, setOverallScoreData] = useState(null);
+  const [overallScoreData, setOverallScoreData] = useState([44, 48, 36, 67]);
   const [stats, setStats] = useState(null);
-  const [chatBot, setChatBot] = useState("Hello");
+  const [chatBot, setChatBot] = useState(
+    "I'm Mr. Flow, your AI running coach. Let's get started!"
+  );
   const [exercises, setExercises] = useState([]);
 
   const panels = [
@@ -51,6 +53,7 @@ const ThreePanelUI = () => {
             setVideos={setVideos}
             setStats={setStats}
             setChatBot={setChatBot}
+            overallScoreData={overallScoreData}
             setOverallScoreData={setOverallScoreData}
             setTips={setTips}
             setExercises={setExercises}

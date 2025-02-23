@@ -6,6 +6,7 @@ import colors from "../colors";
 import axios from "axios";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Rings } from "react-loader-spinner";
+import { FaPersonRunning } from "react-icons/fa6";
 
 const s3Client = new S3Client({
   region: import.meta.env.VITE_AWS_REGION,
@@ -22,10 +23,12 @@ const SourcesPanel = ({
   setActivePanel,
   videos,
   setVideos,
+  overallScoreData,
   setOverallScoreData,
   setStats,
   setChatBot,
   setTips,
+  setExercises,
 }) => {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -170,6 +173,76 @@ const SourcesPanel = ({
             },
           ];
         }
+
+        // If this category is "right", produce a green tip
+        else if (category.status === "right") {
+          tips = [
+            ...tips,
+            {
+              id: key,
+              type: "green",
+              summary: key,
+              details: category.issue_description,
+              sources: [],
+            },
+          ];
+        }
+      }
+
+      // add yellow tip if cadence is off
+      if (response.data.body.cadence.steps_per_minute < 170) {
+        tips = [
+          ...tips,
+          {
+            id: "Cadence",
+            type: "yellow",
+            summary: "Low Cadence",
+            details:
+              "Your cadence is below 170 SPM. Try to increase your steps per minute to improve efficiency.",
+            sources: [],
+          },
+        ];
+      }
+      if (response.data.body.cadence.steps_per_minute > 180) {
+        tips = [
+          ...tips,
+          {
+            id: "Cadence",
+            type: "yellow",
+            summary: "High Cadence",
+            details:
+              "Your cadence is above 180 SPM. Try to decrease your steps per minute to improve efficiency.",
+            sources: [],
+          },
+        ];
+      } // add yellow tip if stride length is off
+
+      // add yellow tip if stride length is off
+      if (response.data.body.stride.average_length < 1.2) {
+        tips = [
+          ...tips,
+          {
+            id: "Stride Length",
+            type: "yellow",
+            summary: "Short Stride Length",
+            details:
+              "Your stride length is below 1.2 meters. Try to increase your stride length to improve efficiency.",
+            sources: [],
+          },
+        ];
+      }
+      if (response.data.body.stride.average_length > 1.4) {
+        tips = [
+          ...tips,
+          {
+            id: "Stride Length",
+            type: "yellow",
+            summary: "Long Stride Length",
+            details:
+              "Your stride length is above 1.4 meters. Try to decrease your stride length to improve efficiency.",
+            sources: [],
+          },
+        ];
       }
 
       console.log("Tips:", tips);
@@ -218,6 +291,9 @@ const SourcesPanel = ({
 
       setStats(stats);
       setTips(tips);
+      setExercises(exercises);
+      // add over all score data
+      setOverallScoreData([...overallScoreData, response.data.body.form_score]);
 
       const claudeResponse = response.data.body.claude_suggestions;
       setChatBot(claudeResponse);
@@ -276,9 +352,12 @@ const SourcesPanel = ({
                 
         <div className="w-full">
                     
-          <h2 className="text-[#FF5733] font-montserrat font-bold mb-2 border-b-1 border-[#FF5733] mb-4">
-                        📹 Video Analyzer           
-          </h2>
+          <div className="flex items-center gap-2 w-full mb-2 border-b-1 border-[#FF5733] pb-2">
+            <FaPersonRunning size={20} color="#FF5733" />
+            <h2 className="text-[#FF5733] font-montserrat font-bold">
+                          Form Analyzer           
+            </h2>
+          </div>
                     
           <div className="flex flex-col w-full">
                         {/* Hidden File Input */}

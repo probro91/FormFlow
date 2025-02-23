@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { RiArrowDropDownLine } from "react-icons/ri";
 import Source from "./Source";
 import colors from "../colors";
+import { FaLightbulb } from "react-icons/fa";
 
 const TipsPanel = ({ id, title, activePanel, tips, setActivePanel }) => {
   const [expandedTip, setExpandedTip] = useState(null);
@@ -61,9 +62,12 @@ const TipsPanel = ({ id, title, activePanel, tips, setActivePanel }) => {
       <div className="w-full p-6 flex flex-col items-center justify-between gap-8">
         {/* Tips List */}
         <div className="w-full flex flex-col items-start">
-          <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold border-b-1 border-[#FF5733] w-full text-left mb-4">
-            💡 Tips
-          </h2>
+          <div className="flex items-center gap-2 w-full mb-2 border-b-1 border-[#FF5733] pb-2">
+            <FaLightbulb size={20} color="#FF5733" />
+            <h2 className="text-[#FF5733] font-montserrat font-bold">
+              Insights           
+            </h2>
+          </div>
           <div className="space-y-2 w-full">
             {tipsArray.map((tip) => (
               <div

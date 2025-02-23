@@ -1,6 +1,7 @@
 import React from "react";
 import colors from "../colors";
 import Source from "./Source";
+import { FaDumbbell } from "react-icons/fa6";
 
 const WellnessPanel = ({
   id,
@@ -14,20 +15,19 @@ const WellnessPanel = ({
     {
       id: 1,
       name: "Dynamic Stretching",
-      videoUrl:
-        "https://www.youtube.com/watch?v=DHJupOV_IOA&list=PLT4Yite3Tx5ne9PJTByCLgdAtxo0lhd2s&index=1",
+      videoUrl: "https://www.youtube.com/watch?v=61l-593ToxI",
     },
     {
       id: 2,
       name: "Core Strengthening",
 
-      videoUrl: "https://www.youtube.com/watch?v=1i8Z8u2J1j8",
+      videoUrl: "https://www.youtube.com/watch?v=pJp08smdcFk",
     },
     {
       id: 3,
       name: "Cool-Down Walk",
 
-      videoUrl: "https://www.youtube.com/watch?v=1i8Z8u2J1j8",
+      videoUrl: "https://www.youtube.com/watch?v=llNpwgxRSGs",
     },
   ];
 
@@ -43,9 +43,12 @@ const WellnessPanel = ({
       <div className="w-full h-full p-5 flex flex-col items-center justify-start gap-8">
         {/* Top Half: Exercise Suggestions */}
         <div className="w-full">
-          <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold text-left flex flex-col items-start gap-2 border-b-1 border-[#FF5733] mb-4">
-            🏋️ Workouts
-          </h2>
+          <div className="flex items-center gap-2 w-full mb-2 border-b-1 border-[#FF5733] pb-2">
+            <FaDumbbell size={20} color="#FF5733" />
+            <h2 className="text-[#FF5733] font-montserrat font-bold">
+                          Exercises           
+            </h2>
+          </div>
           <div className="space-y-2">
             {exercisesData.map((exercise) => (
               <div
