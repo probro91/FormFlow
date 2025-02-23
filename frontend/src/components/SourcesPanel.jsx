@@ -5,12 +5,13 @@ import CustomDropdown from "./CustomDropdown";
 import colors from "../colors";
 import axios from "axios";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { Rings } from "react-loader-spinner";
 
 const s3Client = new S3Client({
-  region: import.meta.env.AWS_REGION,
+  region: import.meta.env.VITE_AWS_REGION,
   credentials: {
-    accessKeyId: import.meta.env.AWS_ACCESS_KEY,
-    secretAccessKey: import.meta.env.AWS_SECRET_KEY,
+    accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID,
+    secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
   },
 });
 
@@ -21,6 +22,9 @@ const SourcesPanel = ({
   setActivePanel,
   videos,
   setVideos,
+  setOverallScoreData,
+  setStats,
+  setChatBot,
 }) => {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -72,6 +76,7 @@ const SourcesPanel = ({
   };
 
   console.log("SourcesPanel videos:", videos); // Handle file selection and preview
+  console.log("SourcesPanel processedVideos:", processedVideos);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -89,6 +94,7 @@ const SourcesPanel = ({
       console.error("No file selected");
       return;
     }
+    setLoading(true); // Create an object URL for the selected file
     const videoUrl = URL.createObjectURL(selectedFile);
     console.log("Created object URL:", videoUrl);
     try {
@@ -103,19 +109,32 @@ const SourcesPanel = ({
         }
       );
       console.log("Upload successful:", response.data); // Ensure we're using the latest state
+
+      const stats = {
+        avgCadence: response.data.body.cadence.steps_per_minute,
+        avgStrideLength: response.data.body.stride.average_length,
+        foot_strike:
+          response.data.body.analysis_categories["Foot Strike"]
+            .issue_description,
+        overallScore: response.data.body.form_score,
+        spineAlignment: response.data.body.spine_alignment.degrees,
+      };
+
+      console.log("Stats:", stats);
+
+      setStats(stats);
+
+      const claudeResponse = response.data.body.claude_suggestions;
+      setChatBot(claudeResponse);
       setVideos((prevVideos) => [videoUrl, ...prevVideos]);
       setSelectedFile(null); // Clear after upload completes
       fetchVideos();
 
-      console.log("the processed vidoes" + processedVideos);
+      setLoading(false);
     } catch (error) {
       console.error("Error uploading video:", error);
-    } // Cleanup the created object URL when the component unmounts
-    useEffect(() => {
-      return () => {
-        URL.revokeObjectURL(videoUrl);
-      };
-    }, [videoUrl]);
+    }
+
     console.log("Upload process complete");
   } // Handle cancel preview
 
@@ -254,11 +273,7 @@ const SourcesPanel = ({
               e.stopPropagation();
               handleUpload();
             }}
-            className={`mt-4 px-4 py-2 rounded-xl text-white font-montserrat cursor-pointer transition-colors duration-300 ${
-              selectedFile && !loading
-                ? "bg-[#FF5733] hover:bg-[#e04e2d]"
-                : "bg-gray-500 cursor-not-allowed"
-            }`}
+            className={`mt-4 px-4 py-2 rounded-xl text-white font-montserrat cursor-pointer transition-colors duration-300 bg-[#FF5733] hover:bg-[#e04e2d]`}
           >
                         Analyze Run           
           </div>

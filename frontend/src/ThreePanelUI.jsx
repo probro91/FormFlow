@@ -14,7 +14,8 @@ const ThreePanelUI = () => {
   const [strideLengthData, setStrideLengthData] = useState(null);
   const [overallScoreData, setOverallScoreData] = useState(null);
   const [stats, setStats] = useState(null);
-  const [processedVideos, setProcessedVideos] = useState(null);
+  const [chatBot, setChatBot] = useState(null);
+  const [exercises, setExercises] = useState([]);
 
   const panels = [
     {
@@ -48,6 +49,11 @@ const ThreePanelUI = () => {
             setActivePanel={setActivePanel}
             videos={videos}
             setVideos={setVideos}
+            setStats={setStats}
+            setChatBot={setChatBot}
+            setOverallScoreData={setOverallScoreData}
+            setTips={setTips}
+            setExercises={setExercises}
           />
         ) : panel.isTips ? (
           <div className="flex-3 flex flex-col gap-4">
@@ -84,7 +90,7 @@ const ThreePanelUI = () => {
               activePanel={activePanel}
               setActivePanel={setActivePanel}
             />
-            <AICoach />
+            <AICoach text={chatBot} />
           </div>
         )
       )}

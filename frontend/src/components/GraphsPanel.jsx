@@ -87,33 +87,6 @@ const GraphsPanel = ({
   overallScoreData,
   stats,
 }) => {
-  // Fake data if no state is provided
-  const defaultCadenceData = {
-    labels: ["0s", "10s", "20s", "30s", "40s", "50s", "60s"],
-    datasets: [
-      {
-        label: "Cadence (SPM)",
-        data: [170, 175, 180, 182, 178, 180, 181],
-        borderColor: "#FF5733",
-        backgroundColor: "rgba(255, 87, 51, 0.2)",
-        fill: true,
-      },
-    ],
-  };
-
-  const defaultStrideLengthData = {
-    labels: ["0s", "10s", "20s", "30s", "40s", "50s", "60s"],
-    datasets: [
-      {
-        label: "Stride Length (m)",
-        data: [1.1, 1.15, 1.2, 1.25, 1.18, 1.22, 1.2],
-        borderColor: "#FF5733",
-        backgroundColor: "rgba(255, 87, 51, 0.2)",
-        fill: true,
-      },
-    ],
-  };
-
   const defaultOverallScoreData = {
     labels: ["0s", "10s", "20s", "30s", "40s", "50s", "60s"],
     datasets: [
@@ -148,7 +121,6 @@ const GraphsPanel = ({
     },
   };
 
-  const strideLengthChartData = strideLengthData || defaultStrideLengthData;
   const overallScoreChartData = overallScoreData || defaultOverallScoreData;
   const {
     avgCadence,
