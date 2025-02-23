@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import colors from "../colors";
 import Source from "./Source";
 
 const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
@@ -51,7 +52,8 @@ const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
 
   return (
     <div
-      className={`flex-2 text-white rounded-lg transition-all duration-300 ease-in-out flex flex-col items-center text-center border-2 border-[#444444] hover:border-[#555555] hover:scale-101 bg-[#1A2533]`}
+      className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-center text-center border-2 border-[#444444] hover:border-[#555555] hover:scale-101`}
+      style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
       {/* Scrollable Content Container */}
@@ -65,7 +67,8 @@ const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
             {exercises.map((exercise) => (
               <div
                 key={exercise.id}
-                className="p-4 bg-[#1A2533] rounded-md flex flex-col items-start max-w-[500px] gap-2 border-1 border-[#444444]"
+                className={`p-4 rounded-xl flex flex-col items-start max-w-[500px] gap-2 border-1 border-[#444444]`}
+                style={{ backgroundColor: colors.card2 }}
               >
                 <p className="text-white font-montserrat">{exercise.name}</p>
                 <p className="text-[#cccccc] text-sm text-left">

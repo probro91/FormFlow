@@ -5,7 +5,7 @@ const AICoach = (text) => {
   return (
     <div className="fixed bottom-3 right-5 flex flex-col items-end gap-2">
       {/* Chat Response Card */}
-      <div className="bg-[#fff] text-black rounded-lg p-4 shadow-lg w-full max-w-118">
+      <div className="bg-[#fff] text-black rounded-xl p-4 shadow-lg w-full max-w-118">
         <p className="text-sm font-montserrat">{`"${text}"`}</p>
       </div>
 

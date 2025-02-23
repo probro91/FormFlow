@@ -1,6 +1,7 @@
 import React from "react";
 import { RiArrowDropDownLine } from "react-icons/ri";
 import Source from "./Source";
+import colors from "../colors";
 
 const TipsPanel = ({
   id,
@@ -68,7 +69,8 @@ const TipsPanel = ({
 
   return (
     <div
-      className={`text-white rounded-lg transition-all duration-300 ease-in-out flex flex-col items-center text-center border-2 hover:scale-101 hover:border-[#555555] border-[#444444] bg-[#1A2533]`}
+      className={`text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-center text-center border-2 hover:scale-101 hover:border-[#555555] border-[#444444]`}
+      style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
       {/* Scrollable Content Container */}
@@ -78,13 +80,14 @@ const TipsPanel = ({
           <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold">
             Tips
           </h2>
-          <div className="space-y-2 w-full">
+          <div className="space-y-4 w-full">
             {tips.map((tip) => (
               <div
                 key={tip.id}
-                className={`p-4 rounded-xl transition-all duration-300 w-full text-left bg-[#1A2533] border-1 border-[#444444] 
+                className={`p-4 rounded-xl transition-all duration-300 w-full text-left border-1 border-[#444444] 
                  
                 `}
+                style={{ backgroundColor: colors.card2 }}
               >
                 <div className="flex items-center gap-2">
                   {/* Color Indicator */}

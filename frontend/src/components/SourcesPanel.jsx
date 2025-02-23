@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import RunVideo from "./RunVideo";
 import { MdOutlineFileUpload } from "react-icons/md";
 import CustomDropdown from "./CustomDropdown";
+import colors from "../colors";
 
 const SourcesPanel = ({
   id,
@@ -31,7 +32,9 @@ const SourcesPanel = ({
   const handleUpload = () => {
     if (selectedFile) {
       const videoUrl = URL.createObjectURL(selectedFile);
-      console.log("Uploading videoUrl:", videoUrl);
+
+      // call backend here
+
       setVideos([videoUrl, ...videos]); // Add to videos state
       setSelectedFile(null); // Clear preview
     }
@@ -51,7 +54,8 @@ const SourcesPanel = ({
 
   return (
     <div
-      className={`flex-2 text-white rounded-lg transition-all duration-300 ease-in-out flex flex-col items-start text-left p-6 border-2 border-[#444444] justify-between hover:border-[#555555] hover:scale-101 bg-[#1A2533]`}
+      className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-start text-left p-6 border-2 border-[#444444] justify-between hover:border-[#555555] hover:scale-101`}
+      style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
       {/* Title and Upload Section */}
@@ -76,7 +80,7 @@ const SourcesPanel = ({
                 <p className="text-[#cccccc] text-sm">Select a video file:</p>
                 <div
                   onClick={handleIconClick}
-                  className="cursor-pointer px-8 py-2 border border-[#aaa] rounded-xl hover:bg-[#555] hover:border-[#fff]"
+                  className="cursor-pointer px-8 py-2 border border-[#aaa] rounded-xl hover:bg-gray-800 hover:border-[#fff]"
                 >
                   <MdOutlineFileUpload size={20} color="#fff" />
                 </div>

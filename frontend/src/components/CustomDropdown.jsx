@@ -20,7 +20,7 @@ const CustomDropdown = ({ videos, onClick }) => {
     <div className="relative w-24">
       {/* Toggle Button */}
       <div
-        className="text-[#cccccc] text-xs p-2 rounded-md cursor-pointer hover:border-[#FF5733] transition-colors duration-300 flex items-center justify-end"
+        className="text-[#cccccc] text-xs p-2 rounded-xl cursor-pointer hover:border-[#FF5733] transition-colors duration-300 flex items-center justify-end"
         onClick={toggleDropdown}
       >
         <FaHistory
@@ -34,7 +34,7 @@ const CustomDropdown = ({ videos, onClick }) => {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 w-full bg-[#444444] text-[#cccccc] text-xs rounded-md border border-[#555555] mt-1 shadow-lg z-10 max-h-32 overflow-y-auto">
+        <div className="absolute top-full left-0 w-full bg-[#444444] text-[#cccccc] text-xs rounded-xl border border-[#555555] mt-1 shadow-lg z-10 max-h-32 overflow-y-auto">
           {videos.slice(1).map((video, index) => (
             <div
               key={index}

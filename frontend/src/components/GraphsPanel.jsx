@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import colors from "../colors";
 
 // Register Chart.js components
 ChartJS.register(
@@ -152,7 +153,8 @@ const GraphsPanel = ({
 
   return (
     <div
-      className={`text-white rounded-lg transition-all duration-300 ease-in-out flex flex-col text-center border-2 border-[#444444] p-6 pb-12 hover:border-[#555555] hover:scale-101 bg-[#1A2533]`}
+      className={`text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col text-center border-2 border-[#444444] p-6 pb-12 hover:border-[#555555] hover:scale-101 `}
+      style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
       <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold text-left flex flex-col text-left items-start gap-2">

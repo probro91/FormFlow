@@ -7,7 +7,7 @@ function App() {
   const [videos, setVideos] = useState([]); // Store uploaded video URLs
 
   return (
-    <div className="min-h-screen min-w-screen text-white bg-gray-900 font-montserrat">
+    <div className="min-h-screen min-w-screen text-white font-montserrat">
       {/* Navigation */}
       <nav className="p-4 pb-0 sflex justify-between items-center">
         <img src={title} alt="title" className="w-48 h-8 object-cover" />

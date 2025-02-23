@@ -5,22 +5,6 @@ import GraphsPanel from "./components/GraphsPanel";
 import WellnessPanel from "./components/WellnessPanel";
 import AICoach from "./components/AICoach";
 
-const Panel = ({ id, title, description, activePanel, setActivePanel }) => {
-  return (
-    <div
-      className={`flex-1 bg-[#333333] text-white p-5 rounded-lg transition-all duration-300 ease-in-out cursor-pointer flex flex-col items-center justify-center text-center ${
-        activePanel === id
-          ? "flex-[1.2] scale-105 shadow-[0_0_15px_rgba(255,87,51,0.7)] bg-[#444444]"
-          : ""
-      }`}
-      onClick={() => setActivePanel(id)}
-    >
-      <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold">{title}</h2>
-      <p className="text-[#cccccc] text-base leading-relaxed">{description}</p>
-    </div>
-  );
-};
-
 const ThreePanelUI = () => {
   const [activePanel, setActivePanel] = useState(null);
   const [videos, setVideos] = useState([]);
