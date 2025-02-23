@@ -25,6 +25,7 @@ const SourcesPanel = ({
   setOverallScoreData,
   setStats,
   setChatBot,
+  setTips,
 }) => {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -113,16 +114,68 @@ const SourcesPanel = ({
       const stats = {
         avgCadence: response.data.body.cadence.steps_per_minute,
         avgStrideLength: response.data.body.stride.average_length,
-        foot_strike:
-          response.data.body.analysis_categories["Foot Strike"]
-            .issue_description,
+        footStrike:
+          response.data.body.analysis_categories[
+            "Foot Strike"
+          ].issue_description.split("(")[0],
         overallScore: response.data.body.form_score,
         spineAlignment: response.data.body.spine_alignment.degrees,
       };
 
       console.log("Stats:", stats);
 
+      // set tips in the following format
+      {
+        /* 
+        {
+        id: 1,
+        type: "green",
+        summary: "Great Cadence",
+        details:
+          "Your cadence is consistently above 180 SPM, optimizing efficiency.",
+        sources: [
+          {
+            imageUrl: "https://placehold.co/400",
+            title: "Benefits of Stretching for Runners",
+            url: "https://www.health.harvard.edu/staying-healthy/the-importance-of-stretching",
+          },
+        ],
+      },
+      */
+      }
+      let tips = [];
+
+      const analysis_categories = response.data.body.analysis_categories;
+
+      for (const key in analysis_categories) {
+        console.log(key, analysis_categories[key]);
+
+        const category = analysis_categories[key];
+
+        if (category.status === "wrong") {
+          const sources = category.articles.map((source) => ({
+            imageUrl: source.image,
+            title: source.title,
+            url: source.url,
+          }));
+
+          tips = [
+            ...tips,
+            {
+              id: key,
+              type: "red",
+              summary: key,
+              details: category.issue_description,
+              sources,
+            },
+          ];
+        }
+      }
+
+      console.log("Tips:", tips);
+
       setStats(stats);
+      setTips(tips);
 
       const claudeResponse = response.data.body.claude_suggestions;
       setChatBot(claudeResponse);

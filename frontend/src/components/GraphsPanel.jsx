@@ -148,7 +148,7 @@ const GraphsPanel = ({
         </div>
         <div>
           <p className="text-[#cccccc] text-sm">Spine Alignment</p>
-          <SpineAngleGraph value={spineAlignment} />
+          <SpineAngleGraph spineAlignment={spineAlignment} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4 mt-6 text-center">

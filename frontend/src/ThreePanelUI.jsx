@@ -89,6 +89,7 @@ const ThreePanelUI = () => {
               title={panel.title}
               activePanel={activePanel}
               setActivePanel={setActivePanel}
+              exercises={exercises}
             />
             <AICoach text={chatBot} />
           </div>

@@ -2,9 +2,15 @@ import React from "react";
 import colors from "../colors";
 import Source from "./Source";
 
-const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
+const WellnessPanel = ({
+  id,
+  title,
+  activePanel,
+  setActivePanel,
+  exercises,
+}) => {
   // Placeholder data for exercise suggestions
-  const exercises = [
+  const exercisesDummy = [
     {
       id: 1,
       name: "Dynamic Stretching",
@@ -50,6 +56,8 @@ const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
     },
   ];
 
+  const exercisesData = exercises.length > 0 ? exercises : exercisesDummy;
+
   return (
     <div
       className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-center text-center border-[#444444] hover:border-[#555555] hover:scale-101`}
@@ -64,7 +72,7 @@ const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
             {title}
           </h2>
           <div className="space-y-2">
-            {exercises.map((exercise) => (
+            {exercisesData.map((exercise) => (
               <div
                 key={exercise.id}
                 className={`p-4 rounded-xl flex flex-col items-start max-w-[500px] gap-2 border-1 border-[#444444] hover:scale-101`}
