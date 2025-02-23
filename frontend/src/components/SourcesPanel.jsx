@@ -8,7 +8,6 @@ import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Rings } from "react-loader-spinner";
 import { FaPersonRunning } from "react-icons/fa6";
 
-
 const s3Client = new S3Client({
   region: import.meta.env.VITE_AWS_REGION,
   credentials: {
@@ -41,40 +40,12 @@ const SourcesPanel = ({
       console.log("generated_videos:", generated_videos);
       let s3links = [];
       for (const key in generated_videos) {
-        const s3file = "https://formflow-videos.s3.us-east-1.amazonaws.com/initalvids/" + key;
+        const s3file =
+          "https://formflow-videos.s3.us-east-1.amazonaws.com/initalvids/" +
+          key;
         s3links.push(s3file);
       }
-      // const videoPromises = Object.entries(generated_videos).map(
-      //   async ([key, keyPath]) => {
-      //     const s3file = "https://formflow-videos.s3.us-east-1.amazonaws.com/initalvids/" + key;
-      //     console.log("s3file:", s3file);
-      //     return s3file;
-      //   }
-      // );
-      //   async ([key, keyPath]) => {
-      //     console.log("Fetching video:", key, keyPath);
-      //     const params = {
-      //       Bucket: "formflow-videos",
-      //       Key: "https://formflow-videos." + keyPath,
-      //     };
 
-      //     const command = new GetObjectCommand(params);
-      //     const { Body } = await s3Client.send(command);
-      //     const blob = await streamToBlob(Body, "video/mp4");
-
-      //     return { key, blob };
-      //   }
-      // );
-
-      // const results = await Promise.all(videoPromises); // Store the videos in state
-      // console.log("Fetched videos:", results);
-
-      // setProcessedVideos(
-      //   results.reduce((acc, { key, blob }) => {
-      //     acc[key] = blob;
-      //     return acc;
-      //   }, {})
-      // );
       console.log("s3links:", s3links);
       setProcessedVideos(s3links);
     } catch (error) {
@@ -332,7 +303,7 @@ const SourcesPanel = ({
 
   return (
     <div
-      className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-start text-left p-6 border-[#444444] justify-between hover:border-[#555555] hover:scale-101 relative`}
+      className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-start text-left p-6 border-[#444444] justify-start hover:border-[#555555] hover:scale-101 relative`}
       style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
@@ -390,7 +361,7 @@ const SourcesPanel = ({
                                 
                 <div
                   onClick={handleIconClick}
-                  className="cursor-pointer px-14 py-28 border border-[#aaa] rounded-xl hover:bg-gray-800 hover:border-[#fff] items-center justify-center flex gap-2"
+                  className="cursor-pointer px-28 py-14 border border-[#aaa] rounded-xl hover:bg-gray-800 hover:border-[#fff] items-center justify-center flex gap-2"
                 >
                                     
                   <MdOutlineFileUpload size={42} color="#fff" />
@@ -413,7 +384,7 @@ const SourcesPanel = ({
                                 
                 <video
                   key={URL.createObjectURL(selectedFile)}
-                  width="30%"
+                  width="80%"
                   controls
                   className="rounded-xl"
                 >

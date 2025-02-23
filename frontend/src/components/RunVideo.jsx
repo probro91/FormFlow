@@ -1,84 +1,60 @@
 import React, { useState, useEffect } from "react";
-import {
-  FaEye,
-  FaEyeSlash,
-  FaPlayCircle,
-  FaRunning,
-  FaFire,
-} from "react-icons/fa";
+import { FaPlayCircle, FaRunning, FaFire } from "react-icons/fa";
 import ReactPlayer from "react-player";
 
 const RunVideo = ({ processedVideos }) => {
-  console.log("PROCESSED VIDEOS:", processedVideos);
-  const [selectedMode, setSelectedMode] = useState("skeleton"); // Default mode selected
+  const [selectedMode, setSelectedMode] = useState("heatmap");
   const [videoUrl, setVideoUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const videoSources = {
+    heatmap: "/videos/heatmap.mp4",
+    overlay: "/videos/overlay.mp4",
+    skeleton: "/videos/skeleton.mp4",
+    // Add more if needed (e.g., traced: "/videos/traced.mp4")
+  };
+
   useEffect(() => {
-    if (!processedVideos) return;
+    setLoading(true);
+    setError(null);
+    const source = videoSources[selectedMode] || videoSources.heatmap;
 
-    let newUrl = null;
-    Object.entries(processedVideos).forEach(([num, video]) => {
-      if (video.includes(selectedMode)) {
-        newUrl = video;
-      }
-    });
-    console.log("SELECTED MODE:", selectedMode);
-    console.log("NEW VIDEO:", newUrl);
-    setVideoUrl(newUrl);
-  }, [processedVideos, selectedMode]);
-  // useEffect(() => {
-  //   if (!processedVideos) return;
+    // Simple check to ensure the file is accessible (optional)
+    fetch(source)
+      .then((response) => {
+        if (!response.ok) throw new Error("Video not found");
+        setVideoUrl(source);
+      })
+      .catch((err) => {
+        console.error("Error fetching video:", err);
+        setError("Error loading video");
+      })
+      .finally(() => setLoading(false));
+  }, [selectedMode, processedVideos]);
 
-  //   let newUrl = null;
-  //   for (const key in processedVideos) {
-  //     if (key.includes(selectedMode)) {
-  //       newUrl = URL.createObjectURL(processedVideos[key]);
-  //       const a = document.createElement('a');
-  //       a.href = newUrl;
-  //       a.download = 'test.mp4';
-  //       a.click();
-  //       break;
-  //     }
-  //   }
+  const handleModeChange = (mode) => {
+    setSelectedMode(mode);
+  };
 
-  //   setVideoUrl(newUrl);
-  // }, [processedVideos, selectedMode]);
+  if (loading) {
+    return <p className="text-[#cccccc] text-sm mt-4">Loading video...</p>;
+  }
 
-  console.log("VIDEO URL:", videoUrl);
+  if (error) {
+    return <p className="text-[#cccccc] text-sm mt-4">{error}</p>;
+  }
 
   if (!videoUrl) {
-    return (
-      <p className="text-[#cccccc] text-sm mt-4">No video uploaded yet.</p>
-    );
+    return <p className="text-[#cccccc] text-sm mt-4">No video available</p>;
   }
-  // <video
-  //         width="100%"
-  //         controls
-  //         className={`rounded-xl`}
-  //         key={videoUrl}
-  //       >
-  //         <source key={videoUrl} src={videoUrl} type="video/mp4" />
-  //         Your browser does not support the video tag.
-  //       </video>
-
-  // Handle mode selection
-  const handleModeChange = (mode) => setSelectedMode(mode);
 
   return (
     <div className="mt-4 w-full relative">
       <h3 className="text-[#cccccc] text-sm mb-2">Latest Run</h3>
       <div className="relative">
-        <ReactPlayer
-          url={videoUrl}
-          controls
-          width="100%"
-          height="360px"
-        />
-
-        {/* Icon Buttons Container */}
+        <ReactPlayer url={videoUrl} controls width="100%" height="100%" />
         <div className="absolute top-0 right-0 flex gap-2 items-center justify-between p-2">
-          {/* Toggle Background Button */}
-
-          {/* Mode Button Group */}
           <div className="flex gap-1 bg-[#444444] rounded-full border border-[#555555]">
             <div
               onClick={(e) => {
@@ -90,7 +66,7 @@ const RunVideo = ({ processedVideos }) => {
                   ? "bg-[#FF5733] text-white"
                   : "bg-[#444444] text-[#cccccc] hover:bg-[#555555]"
               } transition-colors duration-300`}
-              title="Default View"
+              title="Skeleton View"
             >
               <FaPlayCircle size={16} />
             </div>

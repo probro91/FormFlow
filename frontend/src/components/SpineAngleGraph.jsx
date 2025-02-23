@@ -9,7 +9,7 @@ const SpineAngleGraph = ({ spineAlignment }) => {
   const radius = 70;
 
   // Convert angle to radians
-  const angleRad = (270 - spineAlignment * Math.PI) / 180;
+  const angleRad = (270 - (spineAlignment % 45) * Math.PI) / 180;
   const endX = centerX + radius * Math.cos(angleRad);
   const endY = centerY - radius * Math.sin(angleRad); // Upward direction
 

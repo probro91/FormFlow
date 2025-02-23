@@ -8,7 +8,9 @@ import numpy as np
 import boto3
 import botocore.exceptions
 from flask_cors import CORS
+import subprocess
 
+import shutil
 from flask import Flask, request, jsonify
 from anthropic import Anthropic
 from dotenv import load_dotenv
@@ -244,45 +246,50 @@ def call_claude_coach(analysis_categories):
 ##############################################
 
 def upload_to_s3(local_file, bucket, s3_key):
-    s3 = boto3.client(
+    s3_client = boto3.client(
         "s3",
         aws_access_key_id=AWS_ACCESS_KEY_ID,
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
         region_name=AWS_REGION_NAME
     )
-    try: 
-        s3.put_object(Body=local_file, Bucket=bucket, Key=s3_key, ContentType="video/mp4")
-        print(f"[INFO] Uploaded to s3://{bucket}/{s3_key}")
-    except botocore.exceptions.ClientError as e:
-        error_message = e.response['Error']['Message']
-        print(f"Upload failed: {error_message}")
-    except FileNotFoundError:
-        print(f"[ERROR] The file {local_file} was not found.")
-    except Exception as e:
-        print(f"[ERROR] An error occurred: {e}")
-
-def convertAVItoMP4(input_avi, output_mp4):
-    cap = cv2.VideoCapture(input_avi)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    w   = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    h   = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(output_mp4, fourcc, fps, (w,h))
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        out.write(frame)
-
-    cap.release()
-    out.release()
-    print(f"[INFO] Converted {input_avi} -> {output_mp4}")
-
-    if os.path.exists(input_avi):
-        os.remove(input_avi)
-        print(f"[INFO] Removed {input_avi}")
+    
+    s3_client.upload_file(
+        local_file,
+        bucket,
+        s3_key,
+        ExtraArgs={"ACL": "public-read", "ContentType": "video/mp4"}
+    )
+    print(f"Successfully uploaded {s3_key} to s3://{bucket}/{s3_key}")
+    public_url = f"https://{bucket}.s3.amazonaws.com/{s3_key}"
+    return public_url
+    
+def convertAVItoMP4(avi_file, mp4_file):
+    """
+    Convert an AVI file to MP4 using FFmpeg.
+    
+    Args:
+        avi_file (str): Path to the input AVI file
+        mp4_file (str): Path to the output MP4 file
+    """
+    if not os.path.isfile(avi_file):
+        raise FileNotFoundError(f"AVI file not found: {avi_file}")
+    
+    command = [
+        "ffmpeg",
+        "-i", avi_file,          # Input file
+        "-c:v", "libx264",      # Video codec: H.264
+        "-c:a", "aac",          # Audio codec: AAC
+        "-movflags", "faststart",  # Optimize for streaming
+        "-y",                   # Overwrite output without asking
+        mp4_file                # Output file
+    ]
+    
+    try:
+        subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(f"Converted {avi_file} to {mp4_file}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error converting {avi_file} to {mp4_file}: {e.stderr.decode()}")
+        raise
 
 ##############################################
 # 5) Skeleton / Heatmap / Overlay Drawing
@@ -1229,44 +1236,50 @@ def analyze_endpoint():
     traced_output_path = bad_runner_path.replace(".mp4", "_traced.mp4")
 
     # 1) Create skeleton, overlay, heatmap (orig background)
-    skeleton_avi = bad_runner_path + "_skeleton.avi"
+    skeleton_avi = "skeleton.avi"
     create_bad_runner_skeleton(bad_runner_path, skeleton_avi, white_bg=False)
 
-    overlay_avi = bad_runner_path + "_overlay.avi"
+    overlay_avi = "overlay.avi"
     create_bad_runner_with_good_overlay(bad_runner_path, good_runner_path, overlay_avi)
 
-    heatmap_avi  = bad_runner_path + "_heatmap.avi"
+    heatmap_avi = "heatmap.avi"
     create_bad_runner_heatmap(bad_runner_path, heatmap_avi, white_bg=False)
 
     # 3) Convert each .avi -> .mp4
-    skeleton_mp4       = skeleton_avi.replace(".avi", ".mp4")
-    overlay_mp4        = overlay_avi.replace(".avi", ".mp4")
-    heatmap_mp4        = heatmap_avi.replace(".avi", ".mp4")
+    skeleton_mp4 = skeleton_avi.replace(".avi", ".mp4")
+    overlay_mp4 = overlay_avi.replace(".avi", ".mp4")
+    heatmap_mp4 = heatmap_avi.replace(".avi", ".mp4")
 
     all_avi_mp4_pairs = [
-        (skeleton_avi,       skeleton_mp4),
-        (overlay_avi,        overlay_mp4),
-        (heatmap_avi,        heatmap_mp4)
+        (skeleton_avi, skeleton_mp4),
+        (overlay_avi, overlay_mp4),
+        (heatmap_avi, heatmap_mp4)
     ]
 
+    # 2) Set up output directory
+    output_dir = os.path.join(os.getcwd(), "frontend", "public", "videos")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # 3) Convert AVI to MP4 and move to output folder
+    local_links = {}
     for (avi_file, mp4_file) in all_avi_mp4_pairs:
+        # Convert AVI to MP4 in the current working directory
         convertAVItoMP4(avi_file, mp4_file)
+        
+        # Move the converted MP4 to the output folder
+        local_path = os.path.join(output_dir, os.path.basename(mp4_file))
+        if os.path.isfile(mp4_file):
+            shutil.move(mp4_file, local_path)
+            local_links[os.path.basename(mp4_file)] = local_path  # Use filename as key
+        else:
+            print(f"Error: Converted file {mp4_file} not found")
 
-    # 4) Upload all .mp4 to S3
-    bucket_name = "formflow-videos"
-    s3_links = {}
-    final_mp4_list = [
-        skeleton_mp4,
-        overlay_mp4,
-        heatmap_mp4
-    ]
-
-    for vid_path in final_mp4_list:
-        print (f"Uploading {vid_path} to S3...")
-        with open(vid_path, "rb") as f:
-            s3_key = f"initalvids/{os.path.basename(vid_path)}"
-            upload_to_s3(f, bucket_name, s3_key)
-        s3_links[os.path.basename(vid_path)] = f"s3://{bucket_name}/{s3_key}"
+    # 4) Print results
+    print(f"Files saved in: {output_dir}")
+    print("Local file paths:")
+    for name, path in local_links.items():
+        print(f"{name}: {path}")
 
     # 5) Actually analyze running form -> traced video
     results = analyze_running_form(bad_runner_path, traced_output_path)
@@ -1277,15 +1290,7 @@ def analyze_endpoint():
     claude_suggestions = call_claude_coach(results["analysis_categories"])
     results.update(claude_suggestions)
 
-    # Optionally upload the traced video to S3, if it exists
-    if os.path.exists(traced_output_path):
-        print (f"Uploading traced video to S3...{traced_output_path}")
-        with open (traced_output_path, "rb") as f:
-            traced_key = f"initalvids/{os.path.basename(traced_output_path)}"
-            upload_to_s3(traced_output_path, bucket_name, traced_key)
-        s3_links[os.path.basename(traced_output_path)] = f"s3://{bucket_name}/{traced_key}"
-
-    results["generated_videos"] = s3_links
+    results["generated_videos"] = local_links
 
     # Convert list-based categories to dict for final JSON structure
     analysis_categories_dict = {
