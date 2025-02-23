@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import SpineAngleGraph from "./SpineAngleGraph";
 import colors from "../colors";
+import { MdOutlineAutoGraph } from "react-icons/md";
 
 // Register Chart.js components
 ChartJS.register(
@@ -87,12 +88,15 @@ const GraphsPanel = ({
   overallScoreData,
   stats,
 }) => {
+  // make array labels for the graph
+  const labels = Array.from({ length: overallScoreData.length }, (_, i) => i);
+
   const defaultOverallScoreData = {
-    labels: ["0s", "10s", "20s", "30s", "40s", "50s", "60s"],
+    labels,
     datasets: [
       {
         label: "Overall Score (%)",
-        data: [80, 82, 85, 87, 84, 86, 85],
+        data: overallScoreData,
         borderColor: "#FF5733",
         backgroundColor: "rgba(255, 87, 51, 0.2)",
         fill: true,
@@ -121,7 +125,7 @@ const GraphsPanel = ({
     },
   };
 
-  const overallScoreChartData = overallScoreData || defaultOverallScoreData;
+  const overallScoreChartData = defaultOverallScoreData;
   const {
     avgCadence,
     avgStrideLength,
@@ -132,13 +136,16 @@ const GraphsPanel = ({
 
   return (
     <div
-      className={`text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col text-center border-[#444444] p-6 pb-12 hover:border-[#555555] hover:scale-101 `}
+      className={`text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col text-center border-[#444444] p-6 pb-10 hover:border-[#555555] hover:scale-101 `}
       style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
-      <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold text-left flex flex-col text-left items-start gap-2 border-b-1 border-[#FF5733] mb-4">
-        {title}
-      </h2>
+      <div className="flex items-center gap-2 w-full mb-2 border-b-1 border-[#FF5733] pb-2">
+        <MdOutlineAutoGraph size={20} color="#FF5733" />
+        <h2 className="text-[#FF5733] font-montserrat font-bold">
+                      Results          
+        </h2>
+      </div>
       <div className="grid grid-cols-2 gap-4 my-4">
         <div>
           <p className="text-[#cccccc] text-sm">Overall Score Over Time</p>
@@ -148,7 +155,7 @@ const GraphsPanel = ({
         </div>
         <div>
           <p className="text-[#cccccc] text-sm">Spine Alignment</p>
-          <SpineAngleGraph value={spineAlignment} />
+          <SpineAngleGraph spineAlignment={spineAlignment} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4 mt-6 text-center">
@@ -164,8 +171,8 @@ const GraphsPanel = ({
           <p className="text-[#cccccc] text-sm">Avg Cadence (SPM)</p>
           <CircularMeter
             value={parseFloat(avgCadence)}
-            max={200}
-            idealRange={[170, 180]}
+            max={240}
+            idealRange={[150, 180]}
             label="Avg Cadence"
           />
         </div>

@@ -1,6 +1,6 @@
 import React from "react";
 
-const SpineAngleGraph = ({ angle = 7 }) => {
+const SpineAngleGraph = ({ spineAlignment }) => {
   // Graph dimensions
   const width = 100;
   const height = 100;
@@ -9,7 +9,7 @@ const SpineAngleGraph = ({ angle = 7 }) => {
   const radius = 70;
 
   // Convert angle to radians
-  const angleRad = (270 - angle * Math.PI) / 180;
+  const angleRad = (270 - spineAlignment * Math.PI) / 180;
   const endX = centerX + radius * Math.cos(angleRad);
   const endY = centerY - radius * Math.sin(angleRad); // Upward direction
 
@@ -38,7 +38,7 @@ const SpineAngleGraph = ({ angle = 7 }) => {
           className="stroke-[#FF5733] stroke-2"
         />
       </svg>
-      <p className="text-[#FF5733] text-lg font-bold ml-2">{angle}°</p>
+      <p className="text-[#FF5733] text-lg font-bold ml-2">{spineAlignment}°</p>
     </div>
   );
 };

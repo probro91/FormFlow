@@ -30,7 +30,7 @@ const Source = ({ imageUrl, title, url }) => {
         alt={title}
         className="w-6 h-6 rounded-full object-cover  hover:border-[#e04e2d] transition-colors duration-300"
         onError={(e) => {
-          e.target.src = "https://via.placeholder.com/48?text=Image+Not+Found";
+          e.target.src = "https://placehold.co/400";
         }}
       />
       {isHovered && (

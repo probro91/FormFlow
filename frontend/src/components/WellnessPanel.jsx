@@ -1,54 +1,37 @@
 import React from "react";
 import colors from "../colors";
 import Source from "./Source";
+import { FaDumbbell } from "react-icons/fa6";
 
-const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
+const WellnessPanel = ({
+  id,
+  title,
+  activePanel,
+  setActivePanel,
+  exercises,
+}) => {
   // Placeholder data for exercise suggestions
-  const exercises = [
+  const exercisesDummy = [
     {
       id: 1,
       name: "Dynamic Stretching",
-      description:
-        "Warm up with leg swings and arm circles to improve flexibility.",
-      videoUrl: "https://www.youtube.com/watch?v=1i8Z8u2J1j8",
-      sources: [
-        {
-          id: 1,
-          imageUrl: "https://placehold.co/400",
-          title: "Dynamic Stretching Routine",
-          url: "https://www.youtube.com/watch?v=L_jWHffIx5E&list=RDdQw4w9WgXcQ&index=7",
-        },
-      ],
+      videoUrl: "https://www.youtube.com/watch?v=61l-593ToxI",
     },
     {
       id: 2,
       name: "Core Strengthening",
-      description: "Planks and bridges to enhance stability and running form.",
-      videoUrl: "https://www.youtube.com/watch?v=1i8Z8u2J1j8",
-      sources: [
-        {
-          id: 1,
-          imageUrl: "https://placehold.co/400",
-          title: "Core Strengthening Exercises",
-          url: "https://www.youtube.com/watch?v=1i8Z8u2J1j8",
-        },
-      ],
+
+      videoUrl: "https://www.youtube.com/watch?v=pJp08smdcFk",
     },
     {
       id: 3,
       name: "Cool-Down Walk",
-      description: "A 5-10 minute walk post-run to aid recovery.",
-      videoUrl: "https://www.youtube.com/watch?v=1i8Z8u2J1j8",
-      sources: [
-        {
-          id: 1,
-          imageUrl: "https://placehold.co/400",
-          title: "Cool-Down Walk Benefits",
-          url: "https://www.youtube.com/watch?v=1i8Z8u2J1j8",
-        },
-      ],
+
+      videoUrl: "https://www.youtube.com/watch?v=llNpwgxRSGs",
     },
   ];
+
+  const exercisesData = exercises.length > 0 ? exercises : exercisesDummy;
 
   return (
     <div
@@ -60,31 +43,34 @@ const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
       <div className="w-full h-full p-5 flex flex-col items-center justify-start gap-8">
         {/* Top Half: Exercise Suggestions */}
         <div className="w-full">
-          <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold text-left flex flex-col items-start gap-2 border-b-1 border-[#FF5733] mb-4">
-            {title}
-          </h2>
+          <div className="flex items-center gap-2 w-full mb-4 border-b-1 border-[#FF5733] pb-2">
+            <FaDumbbell size={20} color="#FF5733" />
+            <h2 className="text-[#FF5733] font-montserrat font-bold">
+                          Exercises           
+            </h2>
+          </div>
           <div className="space-y-2">
-            {exercises.map((exercise) => (
+            {exercisesData.map((exercise) => (
               <div
                 key={exercise.id}
                 className={`p-4 rounded-xl flex flex-col items-start max-w-[500px] gap-2 border-1 border-[#444444] hover:scale-101`}
                 style={{ backgroundColor: colors.card2 }}
               >
                 <p className="text-white font-montserrat">{exercise.name}</p>
-                <p className="text-[#cccccc] text-sm text-left">
-                  {exercise.description}
-                </p>
 
-                <div className="space-y-4 w-full flex">
-                  {exercise.sources.map((source) => (
-                    <Source
-                      key={source.id}
-                      imageUrl={source.imageUrl}
-                      title={source.title}
-                      url={source.url}
-                    />
-                  ))}
-                </div>
+                {/* Video */}
+                <iframe
+                  width={240}
+                  height={135}
+                  src={`https://www.youtube.com/embed/${
+                    exercise.videoUrl.split("v=")[1]?.split("&")[0]
+                  }`}
+                  title={exercise.name}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="rounded-xl"
+                />
               </div>
             ))}
           </div>

@@ -6,6 +6,7 @@ import colors from "../colors";
 import axios from "axios";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Rings } from "react-loader-spinner";
+import { FaPersonRunning } from "react-icons/fa6";
 
 
 const s3Client = new S3Client({
@@ -23,9 +24,12 @@ const SourcesPanel = ({
   setActivePanel,
   videos,
   setVideos,
+  overallScoreData,
   setOverallScoreData,
   setStats,
   setChatBot,
+  setTips,
+  setExercises,
 }) => {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -124,16 +128,183 @@ const SourcesPanel = ({
       const stats = {
         avgCadence: response.data.body.cadence.steps_per_minute,
         avgStrideLength: response.data.body.stride.average_length,
-        foot_strike:
-          response.data.body.analysis_categories["Foot Strike"]
-            .issue_description,
+        footStrike:
+          response.data.body.analysis_categories[
+            "Foot Strike"
+          ].issue_description.split("(")[0],
         overallScore: response.data.body.form_score,
         spineAlignment: response.data.body.spine_alignment.degrees,
       };
 
       console.log("Stats:", stats);
 
+      // set tips in the following format
+      {
+        /* 
+        {
+        id: 1,
+        type: "green",
+        summary: "Great Cadence",
+        details:
+          "Your cadence is consistently above 180 SPM, optimizing efficiency.",
+        sources: [
+          {
+            imageUrl: "https://placehold.co/400",
+            title: "Benefits of Stretching for Runners",
+            url: "https://www.health.harvard.edu/staying-healthy/the-importance-of-stretching",
+          },
+        ],
+      },
+      */
+      }
+      let tips = [];
+
+      const analysis_categories = response.data.body.analysis_categories;
+
+      for (const key in analysis_categories) {
+        console.log(key, analysis_categories[key]);
+
+        const category = analysis_categories[key];
+
+        if (category.status === "wrong") {
+          const sources = category.articles.map((source) => ({
+            imageUrl: source.image,
+            title: source.title,
+            url: source.url,
+          }));
+
+          tips = [
+            ...tips,
+            {
+              id: key,
+              type: "red",
+              summary: key,
+              details: category.issue_description,
+              sources,
+            },
+          ];
+        }
+
+        // If this category is "right", produce a green tip
+        else if (category.status === "right") {
+          tips = [
+            ...tips,
+            {
+              id: key,
+              type: "green",
+              summary: key,
+              details: category.issue_description,
+              sources: [],
+            },
+          ];
+        }
+      }
+
+      // add yellow tip if cadence is off
+      if (response.data.body.cadence.steps_per_minute < 170) {
+        tips = [
+          ...tips,
+          {
+            id: "Cadence",
+            type: "yellow",
+            summary: "Low Cadence",
+            details:
+              "Your cadence is below 170 SPM. Try to increase your steps per minute to improve efficiency.",
+            sources: [],
+          },
+        ];
+      }
+      if (response.data.body.cadence.steps_per_minute > 180) {
+        tips = [
+          ...tips,
+          {
+            id: "Cadence",
+            type: "yellow",
+            summary: "High Cadence",
+            details:
+              "Your cadence is above 180 SPM. Try to decrease your steps per minute to improve efficiency.",
+            sources: [],
+          },
+        ];
+      } // add yellow tip if stride length is off
+
+      // add yellow tip if stride length is off
+      if (response.data.body.stride.average_length < 1.2) {
+        tips = [
+          ...tips,
+          {
+            id: "Stride Length",
+            type: "yellow",
+            summary: "Short Stride Length",
+            details:
+              "Your stride length is below 1.2 meters. Try to increase your stride length to improve efficiency.",
+            sources: [],
+          },
+        ];
+      }
+      if (response.data.body.stride.average_length > 1.4) {
+        tips = [
+          ...tips,
+          {
+            id: "Stride Length",
+            type: "yellow",
+            summary: "Long Stride Length",
+            details:
+              "Your stride length is above 1.4 meters. Try to decrease your stride length to improve efficiency.",
+            sources: [],
+          },
+        ];
+      }
+
+      console.log("Tips:", tips);
+
+      // set exercises in the following format
+      {
+        /*
+        {
+      id: 1,
+      name: "Dynamic Stretching",
+      description:
+        "Warm up with leg swings and arm circles to improve flexibility.",
+      videoUrl: "https://www.youtube.com/watch?v=1i8Z8u2J1j8",
+      sources: [
+        {
+          id: 1,
+          imageUrl: "https://placehold.co/400",
+          title: "Dynamic Stretching Routine",
+          url: "https://www.youtube.com/watch?v=L_jWHffIx5E&list=RDdQw4w9WgXcQ&index=7",
+        },
+      ],
+    },
+      */
+      }
+      let exercises = [];
+
+      // loop over analysis_categories and get the exercises if there are any
+      for (const key in analysis_categories) {
+        console.log(key, analysis_categories[key]);
+
+        const category = analysis_categories[key];
+
+        if (category.exercises.length > 0) {
+          for (const exercise of category.exercises) {
+            exercises = [
+              ...exercises,
+              {
+                id: exercise.name,
+                name: exercise.name,
+                videoUrl: exercise.youtube_link,
+              },
+            ];
+          }
+        }
+      }
+
       setStats(stats);
+      setTips(tips);
+      setExercises(exercises);
+      // add over all score data
+      setOverallScoreData([...overallScoreData, response.data.body.form_score]);
 
       const claudeResponse = response.data.body.claude_suggestions;
       setChatBot(claudeResponse);
@@ -192,10 +363,12 @@ const SourcesPanel = ({
                 
         <div className="w-full">
                     
-          <h2 className="text-[#FF5733] font-montserrat font-bold mb-2 border-b-1 border-[#FF5733] mb-4">
-                        {title}
-                      
-          </h2>
+          <div className="flex items-center gap-2 w-full mb-2 border-b-1 border-[#FF5733] pb-2">
+            <FaPersonRunning size={20} color="#FF5733" />
+            <h2 className="text-[#FF5733] font-montserrat font-bold">
+                          Form Analyzer           
+            </h2>
+          </div>
                     
           <div className="flex flex-col w-full">
                         {/* Hidden File Input */}
@@ -211,16 +384,16 @@ const SourcesPanel = ({
                         
             <div className="flex items-center gap-2 mb-4 justify-between w-full">
                             
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-4 mt-2">
                                 
                 <p className="text-[#cccccc] text-sm">Select a video file:</p>
                                 
                 <div
                   onClick={handleIconClick}
-                  className="cursor-pointer px-8 py-2 border border-[#aaa] rounded-xl hover:bg-gray-800 hover:border-[#fff]"
+                  className="cursor-pointer px-14 py-28 border border-[#aaa] rounded-xl hover:bg-gray-800 hover:border-[#fff] items-center justify-center flex gap-2"
                 >
                                     
-                  <MdOutlineFileUpload size={20} color="#fff" />
+                  <MdOutlineFileUpload size={42} color="#fff" />
                                   
                 </div>
                               
