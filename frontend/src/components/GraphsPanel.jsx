@@ -137,7 +137,7 @@ const GraphsPanel = ({
       onClick={() => setActivePanel(id)}
     >
       <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold text-left flex flex-col text-left items-start gap-2 border-b-1 border-[#FF5733] mb-4">
-        {title}
+        🚀 Results
       </h2>
       <div className="grid grid-cols-2 gap-4 my-4">
         <div>

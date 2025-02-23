@@ -62,7 +62,7 @@ const TipsPanel = ({ id, title, activePanel, tips, setActivePanel }) => {
         {/* Tips List */}
         <div className="w-full flex flex-col items-start">
           <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold border-b-1 border-[#FF5733] w-full text-left mb-4">
-            {title}
+            💡 Tips
           </h2>
           <div className="space-y-2 w-full">
             {tipsArray.map((tip) => (

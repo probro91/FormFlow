@@ -174,6 +174,48 @@ const SourcesPanel = ({
 
       console.log("Tips:", tips);
 
+      // set exercises in the following format
+      {
+        /*
+        {
+      id: 1,
+      name: "Dynamic Stretching",
+      description:
+        "Warm up with leg swings and arm circles to improve flexibility.",
+      videoUrl: "https://www.youtube.com/watch?v=1i8Z8u2J1j8",
+      sources: [
+        {
+          id: 1,
+          imageUrl: "https://placehold.co/400",
+          title: "Dynamic Stretching Routine",
+          url: "https://www.youtube.com/watch?v=L_jWHffIx5E&list=RDdQw4w9WgXcQ&index=7",
+        },
+      ],
+    },
+      */
+      }
+      let exercises = [];
+
+      // loop over analysis_categories and get the exercises if there are any
+      for (const key in analysis_categories) {
+        console.log(key, analysis_categories[key]);
+
+        const category = analysis_categories[key];
+
+        if (category.exercises.length > 0) {
+          for (const exercise of category.exercises) {
+            exercises = [
+              ...exercises,
+              {
+                id: exercise.name,
+                name: exercise.name,
+                videoUrl: exercise.youtube_link,
+              },
+            ];
+          }
+        }
+      }
+
       setStats(stats);
       setTips(tips);
 
@@ -235,8 +277,7 @@ const SourcesPanel = ({
         <div className="w-full">
                     
           <h2 className="text-[#FF5733] font-montserrat font-bold mb-2 border-b-1 border-[#FF5733] mb-4">
-                        {title}
-                      
+                        📹 Video Analyzer           
           </h2>
                     
           <div className="flex flex-col w-full">

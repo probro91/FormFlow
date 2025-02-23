@@ -14,7 +14,7 @@ const ThreePanelUI = () => {
   const [strideLengthData, setStrideLengthData] = useState(null);
   const [overallScoreData, setOverallScoreData] = useState(null);
   const [stats, setStats] = useState(null);
-  const [chatBot, setChatBot] = useState(null);
+  const [chatBot, setChatBot] = useState("Hello");
   const [exercises, setExercises] = useState([]);
 
   const panels = [
@@ -91,7 +91,7 @@ const ThreePanelUI = () => {
               setActivePanel={setActivePanel}
               exercises={exercises}
             />
-            <AICoach text={chatBot} />
+            <AICoach chatBot={chatBot} setChatBot={setChatBot} />
           </div>
         )
       )}
