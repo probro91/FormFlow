@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import RunVideo from "./RunVideo";
 import { MdOutlineFileUpload } from "react-icons/md";
+import CustomDropdown from "./CustomDropdown";
 
 const SourcesPanel = ({
   id,
@@ -50,99 +51,91 @@ const SourcesPanel = ({
 
   return (
     <div
-      className={`flex-2 bg-[#333333] text-white rounded-lg transition-all duration-300 ease-in-out cursor-pointer flex flex-col items-center text-center p-6 border-2 border-[#444444] ${
-        activePanel === id ? "scale-101 border-1 border-[#fff]" : ""
-      }`}
+      className={`flex-2 text-white rounded-lg transition-all duration-300 ease-in-out flex flex-col items-start text-left p-6 border-2 border-[#444444] justify-between hover:border-[#555555] hover:scale-101 bg-[#1A2533]`}
       onClick={() => setActivePanel(id)}
     >
       {/* Title and Upload Section */}
       <div className="w-full flex flex-col items-start">
-        <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold">
-          {title}
-        </h2>
-        <div className="flex flex-col w-full">
-          {/* Hidden File Input */}
-          <input
-            type="file"
-            accept="video/*"
-            onChange={handleFileChange}
-            ref={fileInputRef}
-            className="hidden"
-          />
-          {/* Upload Icon and Buttons */}
-          <div className="flex items-center gap-2 mb-4">
-            <button onClick={handleIconClick}>
-              <MdOutlineFileUpload size={20} color="#fff" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleUpload();
-              }}
-              disabled={!selectedFile}
-              className={`px-4 py-2 rounded-lg text-white font-montserrat ${
-                selectedFile
-                  ? "bg-[#FF5733] hover:bg-[#e04e2d]"
-                  : "bg-gray-500 cursor-not-allowed"
-              }`}
-            >
-              Upload Video
-            </button>
+        <div className="w-full">
+          <h2 className="text-[#FF5733] font-montserrat font-bold mb-2">
+            {title}
+          </h2>
+
+          <div className="flex flex-col w-full">
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              accept="video/*"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              className="hidden"
+            />
+            {/* Upload Icon and Buttons */}
+            <div className="flex items-center gap-2 mb-4 justify-between w-full">
+              <div className="flex items-center gap-4">
+                <p className="text-[#cccccc] text-sm">Select a video file:</p>
+                <div
+                  onClick={handleIconClick}
+                  className="cursor-pointer px-8 py-2 border border-[#aaa] rounded-xl hover:bg-[#555] hover:border-[#fff]"
+                >
+                  <MdOutlineFileUpload size={20} color="#fff" />
+                </div>
+              </div>
+              {videos.length > 1 && (
+                <CustomDropdown videos={videos} setVideos={setVideos} />
+              )}
+            </div>
+            {/* Video Preview */}
             {selectedFile && (
-              <button
-                onClick={handleCancel}
-                className="px-4 py-2 rounded-lg text-white font-montserrat bg-gray-600 hover:bg-gray-700"
-              >
-                Cancel
-              </button>
+              <div className="w-full mb-4">
+                <h3 className="text-[#cccccc] text-sm mb-2">Preview</h3>
+                <video
+                  key={URL.createObjectURL(selectedFile)}
+                  width="30%"
+                  controls
+                  className="rounded-xl"
+                >
+                  <source
+                    src={URL.createObjectURL(selectedFile)}
+                    type="video/mp4"
+                  />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
             )}
           </div>
-          {/* Video Preview */}
-          {selectedFile ? (
-            <div className="w-full mb-4">
-              <h3 className="text-[#cccccc] text-sm mb-2">Preview</h3>
-              <video
-                key={URL.createObjectURL(selectedFile)}
-                width="100%"
-                controls
-                className="rounded-md"
-              >
-                <source
-                  src={URL.createObjectURL(selectedFile)}
-                  type="video/mp4"
-                />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          ) : (
-            <p className="text-[#cccccc] text-sm mb-4">
-              No video selected for preview
-            </p>
-          )}
         </div>
-      </div>
 
-      {/* Previous Uploads Dropdown */}
-      {videos.length > 1 && (
-        <div className="mt-4 w-full">
-          <h3 className="text-[#cccccc] text-sm mb-2">Previous Uploads</h3>
-          <select
-            className="w-full bg-[#444444] text-[#cccccc] text-xs p-2 rounded-md border border-[#555555] focus:outline-none focus:border-[#FF5733]"
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => {
-              const url = e.target.value;
-              if (url) window.open(url, "_blank", "noopener,noreferrer");
+        {selectedFile && (
+          <div className="flex items-center gap-4 w-full">
+            <p className="text-[#cccccc] text-sm truncate">
+              {selectedFile.name}
+            </p>
+            <div
+              onClick={handleCancel}
+              className="font-montserrat cursor-pointer text-[#FF5733] text-sm hover:text-[#e04e2d] transition-colors duration-300"
+            >
+              Cancel
+            </div>
+          </div>
+        )}
+
+        {selectedFile && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUpload();
             }}
+            className={`mt-4 px-4 py-2 rounded-xl text-white font-montserrat cursor-pointer transition-colors duration-300 ${
+              selectedFile
+                ? "bg-[#FF5733] hover:bg-[#e04e2d]"
+                : "bg-gray-500 cursor-not-allowed"
+            }`}
           >
-            <option value="">Select a previous video</option>
-            {videos.slice(1).map((video, index) => (
-              <option key={index} value={video}>
-                Video {videos.length - index - 1}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+            Analyze Run
+          </div>
+        )}
+      </div>
 
       {/* Most Recent Video */}
       <RunVideo videoUrl={videos.length > 0 ? videos[0] : null} />
