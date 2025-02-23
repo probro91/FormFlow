@@ -39,16 +39,16 @@ PROBLEM_RESOURCES = {
     "Excess strain on lower back or hips": {
         "articles": [
             {
-                "title": "How to Prevent and Treat Lower Back Painfrom Running",
-                "url": "https://www.runnersworld.com/health-injuries/a20865586/back-pain-and-running/",
+                "title": "How to Prevent and Treat Lower Back Pain from Running",
+                "url": "https://www.runnersworld.com/uk/health/injury/g771058/injury-runners-lower-back-pain/",
                 "description": "Practical tips to reduce lower-back strain through posture and core strengthening.",
-                "image": "https://hips.hearstapps.com/hmg-prod/images/gettyimages-1304825852.jpg"
+                "image": "https://tse3.mm.bing.net/th?id=OIP.TFfobPmzfl-gCqAT0nZZkQHaLH&w=474&h=474&c=7"
             },
             {
                 "title": "Hip Pain from Running: Causes and Exercises",
-                "url": "https://www.healthline.com/health/hip-pain-running",
+                "url": "https://www.healthline.com/health/sports-injuries/hip-pain-running",
                 "description": "Learn the common reasons for hip pain in runners and stretches to alleviate it.",
-                "image": "https://post.healthline.com/wp-content/uploads/2020/08/Young_Man_Rubbing_Hip_Pain-732x549-thumbnail.jpg"
+                "image": "https://tse1.mm.bing.net/th?id=OIP.Tw9--1ZBLtZ6wn6tDAEL6AHaG_&w=447&h=447&c=7"
             }
         ],
         "exercises": [
@@ -72,9 +72,9 @@ PROBLEM_RESOURCES = {
         "articles": [
             {
                 "title": "5 Tips to Improve Running Posture",
-                "url": "https://www.runnersworld.com/training/a20859973/perfect-running-form/",
+                "url": "https://www.verywellfit.com/tips-for-proper-running-form-4020227",
                 "description": "Guidance on keeping your spine neutral for better efficiency and fewer aches.",
-                "image": "https://hips.hearstapps.com/hmg-prod/images/mid-adult-female-runner-in-nature-royalty-free-image-1651765778.jpg"
+                "image": "https://tse1.mm.bing.net/th?id=OIP.8T50qvEePb5JJS62Pnj0-QHaGL&w=395&h=395&c=7"
             }
         ],
         "exercises": [
@@ -94,9 +94,9 @@ PROBLEM_RESOURCES = {
         "articles": [
             {
                 "title": "Relieving Neck Tension for Runners",
-                "url": "https://www.healthline.com/health/neck-strain",
+                "url": "https://thcboneandjoint.com/educational-resources/neck-exercises.html",
                 "description": "How to maintain a neutral head position and avoid neck tension.",
-                "image": "https://post.healthline.com/wp-content/uploads/2020/08/neckstrain_thumb.jpg"
+                "image": "https://tse4.mm.bing.net/th?id=OIP.Ji-1HByUYt33xcib1GEYxQHaIx&w=474&h=474&c=7"
             }
         ],
         "exercises": [
@@ -116,9 +116,9 @@ PROBLEM_RESOURCES = {
         "articles": [
             {
                 "title": "Running Efficiency 101",
-                "url": "https://www.runnersworld.com/training/a20787239/running-efficiency-tips/",
+                "url": "https://support.coros.com/hc/en-us/articles/6009189372308-Understanding-Running-Efficiency",
                 "description": "Advice on improving knee drive and stride mechanics for better performance.",
-                "image": "https://hips.hearstapps.com/hmg-prod/images/running-efficiency-101.jpg"
+                "image": "https://tse1.mm.bing.net/th?id=OIP.-Pb1SuKsCjNO1rMOOdMhkQHaHj&w=474&h=474&c=7"
             }
         ],
         "exercises": [
@@ -138,9 +138,9 @@ PROBLEM_RESOURCES = {
         "articles": [
             {
                 "title": "How to Avoid Knee and Shin Injuries",
-                "url": "https://www.healthline.com/health/running-and-knee-injuries",
+                "url": "https://www.choosept.com/health-tips/8-tips-prevent-shin-splints",
                 "description": "Tips to reduce heel striking and prevent shin splints or knee pain.",
-                "image": "https://post.healthline.com/wp-content/uploads/2020/08/638668003-732x549-thumbnail.jpg"
+                "image": "https://tse3.mm.bing.net/th?id=OIP.QDDqRCJn_J5VZRJK5ShLUAHaHa&w=474&h=474&c=7"
             }
         ],
         "exercises": [
@@ -155,6 +155,7 @@ PROBLEM_RESOURCES = {
         ]
     }
 }
+
 
 
 
