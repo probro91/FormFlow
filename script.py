@@ -1,3 +1,36 @@
+import os
+import json
+import tempfile
+import sys
+import cv2
+import mediapipe as mp
+import numpy as np
+import boto3
+import botocore.exceptions
+
+from flask import Flask, request, jsonify
+from anthropic import Anthropic
+from dotenv import load_dotenv
+
+##############################################
+# 1) Environment, AWS, and PROBLEM_RESOURCES
+##############################################
+
+load_dotenv()  # Load .env if present
+claude_api_key = os.environ.get("CLAUDE_API_KEY")
+
+# Use environment variables in production. 
+# Hard-coding here just to match your example:
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+AWS_REGION_NAME = os.environ.get("AWS_REGION_NAME")
+
+app = Flask(__name__)
+client = Anthropic(api_key=claude_api_key)
+
+# ---------------------------
+# PROBLEM_RESOURCES dictionary
+# ---------------------------
 PROBLEM_RESOURCES = {
     # 1) Excess strain on lower back or hips
     "Excess strain on lower back or hips": {
@@ -161,41 +194,41 @@ PROBLEM_RESOURCES = {
     }
 }
 
-#!/usr/bin/env python3
 
-import argparse
-import os
-import requests
-import cv2
-import mediapipe as mp
-import numpy as np
-import sys
-import json
-from anthropic import Anthropic
-from dotenv import load_dotenv
-
-# Load environment variables from a .env file (if present)
-load_dotenv()
-
-# Retrieve API Key securely from environment variables
-claude_api_key = os.environ.get("CLAUDE_API_KEY")
-# Replace with your key if testing locally
+##############################################
+# 2) MediaPipe Setup & Constants
+##############################################
 
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 
-# Initialize Anthropic Client
-client = Anthropic(api_key=claude_api_key)
+BODY_CONNECTIONS = []
+for (start_idx, end_idx) in mp_pose.POSE_CONNECTIONS:
+    if start_idx >= 11 and end_idx >= 11:
+        BODY_CONNECTIONS.append((start_idx, end_idx))
 
+LEFT_HIP = 23
+RIGHT_HIP = 24
+LEFT_KNEE = 25
+RIGHT_KNEE = 26
+LEFT_ANKLE = 27
+RIGHT_ANKLE = 28
+LEFT_HEEL = 29
+RIGHT_HEEL = 30
+LEFT_FOOT_INDEX = 31
+RIGHT_FOOT_INDEX = 32
+LEFT_SHOULDER = 11
+RIGHT_SHOULDER = 12
 
-##########################################
-# Claude Running Coach Function
-##########################################
+##############################################
+# 3) Claude Running Coach Function
+##############################################
+
 def call_claude_coach(analysis_categories):
     """
     Sends running form analysis feedback to Claude 3.5 Sonnet 2024-10-22
-    and returns personalized running coach advice.
+    and returns personalized running coach advice in JSON.
     """
     if not claude_api_key:
         print("Claude API Key is missing! Set CLAUDE_API_KEY as an environment variable.")
@@ -205,7 +238,10 @@ def call_claude_coach(analysis_categories):
     formatted_issues = ""
     for category in analysis_categories:
         if category["status"] == "wrong":
-            formatted_issues += f"- **{category['title']}**: {category['issue_description']} (Potential issues: {category['potential_health_issues']})\n"
+            formatted_issues += (
+                f"- **{category['title']}**: {category['issue_description']} "
+                f"(Potential issues: {category['potential_health_issues']})\n"
+            )
         else:
             formatted_issues += f"- **{category['title']}**: No issue detected. Good job!\n"
 
@@ -235,7 +271,6 @@ def call_claude_coach(analysis_categories):
             messages=[{"role": "user", "content": prompt}]
         )
 
-        # Here is where you replace the old return statement
         if hasattr(message, "content"):
             try:
                 return {"claude_suggestions": message.content[0].text}
@@ -248,60 +283,364 @@ def call_claude_coach(analysis_categories):
         print(f"Error calling Claude: {e}")
         return {"error": "Claude API request failed"}
 
+##############################################
+# 4) Helper / Utility Functions (Upload, etc.)
+##############################################
 
+def upload_to_s3(local_file, bucket, s3_key):
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_REGION_NAME
+    )
+    try: 
+        s3.upload_file(local_file, bucket, s3_key)
+        print(f"[INFO] Uploaded {local_file} to s3://{bucket}/{s3_key}")
+    except botocore.exceptions.ClientError as e:
+        error_message = e.response['Error']['Message']
+        print(f"Upload failed: {error_message}")
+    except FileNotFoundError:
+        print(f"[ERROR] The file {local_file} was not found.")
+    except Exception as e:
+        print(f"[ERROR] An error occurred: {e}")
 
+def convertAVItoMP4(input_avi, output_mp4):
+    cap = cv2.VideoCapture(input_avi)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    w   = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h   = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-############################
-# Utility / Helper Functions
-############################
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_mp4, fourcc, fps, (w,h))
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        out.write(frame)
+
+    cap.release()
+    out.release()
+    print(f"[INFO] Converted {input_avi} -> {output_mp4}")
+
+    if os.path.exists(input_avi):
+        os.remove(input_avi)
+        print(f"[INFO] Removed {input_avi}")
+
+##############################################
+# 5) Skeleton / Heatmap / Overlay Drawing
+##############################################
+
+mp_drawing = mp.solutions.drawing_utils
+
+def draw_default_skeleton(landmarks_px, frame, color=(255,255,255), circle_color=(0,255,0), radius=5, thickness=2):
+    for (start_idx, end_idx) in BODY_CONNECTIONS:
+        pt1 = landmarks_px[start_idx]
+        pt2 = landmarks_px[end_idx]
+        cv2.line(frame, pt1, pt2, color, thickness)
+
+    for i in range(11,33):
+        x, y = landmarks_px[i]
+        cv2.circle(frame, (x,y), radius, circle_color, -1)
+
+def blend_color(value, min_val=0.0, max_val=1.0):
+    ratio = np.clip((value - min_val)/(max_val - min_val + 1e-9), 0, 1)
+    r = int(255 * ratio)
+    g = int(255 * (1-ratio))
+    b = 0
+    return (b,g,r)
+
+def angle_3pt(a, b, c):
+    ba = (a[0] - b[0], a[1] - b[1])
+    bc = (c[0] - b[0], c[1] - b[1])
+    dot = ba[0]*bc[0] + ba[1]*bc[1]
+    mag_ba = np.sqrt(ba[0]**2 + ba[1]**2)
+    mag_bc = np.sqrt(bc[0]**2 + bc[1]**2)
+    if mag_ba < 1e-9 or mag_bc < 1e-9:
+        return 0.0
+    cos_angle = dot/(mag_ba*mag_bc)
+    cos_angle = np.clip(cos_angle, -1, 1)
+    return np.degrees(np.arccos(cos_angle))
+
+def angle_to_vertical(a, b):
+    dx = b[0] - a[0]
+    dy = b[1] - a[1]
+    angle_x = np.degrees(np.arctan2(dy, dx))
+    return abs(90 - angle_x)
+
+def euclidean_distance(p1, p2):
+    return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+def compute_heatmap_stress(landmarks_px):
+    lm = {i: (landmarks_px[i][0], landmarks_px[i][1]) for i in range(len(landmarks_px))}
+    stress = {}
+    for i in range(11,33):
+        stress[i] = 0.0
+
+    # Knees
+    if (LEFT_HIP in lm) and (LEFT_KNEE in lm) and (LEFT_ANKLE in lm):
+        left_knee_angle = angle_3pt(lm[LEFT_HIP], lm[LEFT_KNEE], lm[LEFT_ANKLE])
+        if left_knee_angle > 120:
+            stress[LEFT_KNEE] = np.clip((left_knee_angle - 120)/60, 0, 1)
+
+    if (RIGHT_HIP in lm) and (RIGHT_KNEE in lm) and (RIGHT_ANKLE in lm):
+        right_knee_angle = angle_3pt(lm[RIGHT_HIP], lm[RIGHT_KNEE], lm[RIGHT_ANKLE])
+        if right_knee_angle > 120:
+            stress[RIGHT_KNEE] = np.clip((right_knee_angle - 120)/60, 0, 1)
+
+    # Hips center
+    if (LEFT_HIP in lm) and (RIGHT_HIP in lm):
+        hips_center = (
+            (lm[LEFT_HIP][0] + lm[RIGHT_HIP][0]) / 2,
+            (lm[LEFT_HIP][1] + lm[RIGHT_HIP][1]) / 2
+        )
+    else:
+        hips_center = (0,0)
+
+    # Body height
+    body_height = 100
+    if (LEFT_SHOULDER in lm) and (RIGHT_SHOULDER in lm):
+        shoulders_center = (
+            (lm[LEFT_SHOULDER][0] + lm[RIGHT_SHOULDER][0]) / 2,
+            (lm[LEFT_SHOULDER][1] + lm[RIGHT_SHOULDER][1]) / 2
+        )
+        body_height = euclidean_distance(hips_center, shoulders_center)
+
+    # Heel striking
+    if LEFT_FOOT_INDEX in lm:
+        foot_offset_L = lm[LEFT_FOOT_INDEX][0] - hips_center[0]
+        if foot_offset_L > 0.3 * body_height:
+            stress[LEFT_ANKLE] = max(stress[LEFT_ANKLE], 1.0)
+            stress[LEFT_HEEL]  = max(stress[LEFT_HEEL], 1.0)
+            stress[LEFT_FOOT_INDEX] = max(stress[LEFT_FOOT_INDEX], 1.0)
+
+    if RIGHT_FOOT_INDEX in lm:
+        foot_offset_R = lm[RIGHT_FOOT_INDEX][0] - hips_center[0]
+        if foot_offset_R > 0.3 * body_height:
+            stress[RIGHT_ANKLE] = max(stress[RIGHT_ANKLE], 1.0)
+            stress[RIGHT_HEEL]  = max(stress[RIGHT_HEEL], 1.0)
+            stress[RIGHT_FOOT_INDEX] = max(stress[RIGHT_FOOT_INDEX], 1.0)
+
+    # Trunk lean
+    trunk_stress = 0.0
+    if (LEFT_SHOULDER in lm) and (RIGHT_SHOULDER in lm):
+        angle_vert = angle_to_vertical(shoulders_center, hips_center)
+        if angle_vert > 15:
+            trunk_stress = np.clip((angle_vert - 15)/30, 0, 1)
+
+    for j in [LEFT_SHOULDER, RIGHT_SHOULDER, LEFT_HIP, RIGHT_HIP]:
+        if j in stress:
+            stress[j] = max(stress[j], trunk_stress)
+
+    return stress
+
+def create_bad_runner_skeleton(video_path, output_avi, white_bg=False):
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    w   = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h   = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(output_avi, fourcc, fps, (w,h))
+
+    pose = mp_pose.Pose(
+        model_complexity=1,
+        static_image_mode=False,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if white_bg:
+            draw_frame = np.full((h, w, 3), 255, dtype=np.uint8)
+        else:
+            draw_frame = frame.copy()
+
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(rgb)
+
+        if results.pose_landmarks:
+            landmarks_px = []
+            for lm in results.pose_landmarks.landmark:
+                x_px = int(lm.x * w)
+                y_px = int(lm.y * h)
+                landmarks_px.append((x_px, y_px))
+
+            draw_default_skeleton(landmarks_px, draw_frame, (255,255,255), (0,255,0))
+
+        out.write(draw_frame)
+
+    cap.release()
+    out.release()
+
+def extract_all_landmarks(video_path):
+    cap = cv2.VideoCapture(video_path)
+    pose = mp_pose.Pose(
+        static_image_mode=False,
+        model_complexity=1,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
+    all_lms = []
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(rgb)
+        if results.pose_landmarks:
+            coords = [(lm.x, lm.y) for lm in results.pose_landmarks.landmark]
+        else:
+            coords = [(0.0, 0.0)] * 33
+        all_lms.append(coords)
+    cap.release()
+    return all_lms
+
+def create_bad_runner_with_good_overlay(bad_runner_path, good_runner_path, output_avi, white_bg=False):
+    good_landmarks = extract_all_landmarks(good_runner_path)
+    num_good = len(good_landmarks)
+
+    cap_bad = cv2.VideoCapture(bad_runner_path)
+    num_bad = int(cap_bad.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps  = cap_bad.get(cv2.CAP_PROP_FPS)
+    w    = int(cap_bad.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h    = int(cap_bad.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(output_avi, fourcc, fps, (w,h))
+
+    idx = 0
+    while True:
+        ret, frame_bad = cap_bad.read()
+        if not ret:
+            break
+
+        if white_bg:
+            draw_frame = np.full((h, w, 3), 255, dtype=np.uint8)
+        else:
+            draw_frame = frame_bad.copy()
+
+        good_idx = int((idx / num_bad) * num_good)
+        if good_idx >= num_good:
+            good_idx = num_good - 1
+
+        good_lms = good_landmarks[good_idx]
+        for (start_idx, end_idx) in BODY_CONNECTIONS:
+            pt1 = (
+                int(good_lms[start_idx][0] * w),
+                int(good_lms[start_idx][1] * h),
+            )
+            pt2 = (
+                int(good_lms[end_idx][0] * w),
+                int(good_lms[end_idx][1] * h),
+            )
+            cv2.line(draw_frame, pt1, pt2, (255,255,255), 2)
+
+        for i in range(11,33):
+            gx = int(good_lms[i][0]*w)
+            gy = int(good_lms[i][1]*h)
+            cv2.circle(draw_frame, (gx,gy), 4, (0,255,0), -1)
+
+        out.write(draw_frame)
+        idx += 1
+
+    cap_bad.release()
+    out.release()
+
+def create_bad_runner_heatmap(video_path, output_avi, white_bg=False):
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    w   = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h   = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(output_avi, fourcc, fps, (w,h))
+
+    pose = mp_pose.Pose(
+        model_complexity=1,
+        static_image_mode=False,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if white_bg:
+            draw_frame = np.full((h, w, 3), 255, dtype=np.uint8)
+        else:
+            draw_frame = frame.copy()
+
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(rgb)
+
+        if results.pose_landmarks:
+            landmarks_px = []
+            for lm in results.pose_landmarks.landmark:
+                x_px = int(lm.x * w)
+                y_px = int(lm.y * h)
+                landmarks_px.append((x_px, y_px))
+
+            stress_dict = compute_heatmap_stress(landmarks_px)
+
+            # draw lines
+            for (start_idx, end_idx) in BODY_CONNECTIONS:
+                s_val = stress_dict[start_idx]
+                e_val = stress_dict[end_idx]
+                mean_val = (s_val + e_val)/2
+                line_color = blend_color(mean_val, 0, 1)
+                cv2.line(draw_frame, landmarks_px[start_idx], landmarks_px[end_idx], line_color, 2)
+
+            # draw circles
+            for i in range(11,33):
+                st = stress_dict[i]
+                col = blend_color(st, 0,1)
+                cv2.circle(draw_frame, landmarks_px[i], 8, col, -1)
+
+        out.write(draw_frame)
+
+    cap.release()
+    out.release()
+
+##############################################
+# 6) The Full Running Form Analysis
+##############################################
 
 def distance_2d(a, b):
-    """
-    Euclidean distance between two normalized 2D points (x, y).
-    """
-    a, b = np.array(a), np.array(b)
-    return np.linalg.norm(a - b)
+    return np.linalg.norm(np.array(a) - np.array(b))
 
 def calculate_angle_2d(a, b, c):
-    """
-    Calculate the angle (in degrees) formed by points A-B-C (2D).
-    Each point is (x, y) in normalized coordinates [0..1].
-    """
     a, b, c = np.array(a), np.array(b), np.array(c)
     ba = a - b
     bc = c - b
-
     cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
     cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
     angle = np.degrees(np.arccos(cosine_angle))
     return angle
 
 def vector_angle_with_vertical(a, b):
-    """
-    Returns the angle (in degrees) between the vector from A->B
-    and a perfect vertical line (pointing down).
-    Each point is (x, y) in normalized coordinates.
-    """
     a, b = np.array(a), np.array(b)
     vec = b - a
     vertical = np.array([0, 1])
-    cosine_angle = np.dot(vec, vertical) / (np.linalg.norm(vec) * np.linalg.norm(vertical))
+    cosine_angle = np.dot(vec, vertical) / (np.linalg.norm(vec)*np.linalg.norm(vertical))
     cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
     angle_deg = np.degrees(np.arccos(cosine_angle))
     return angle_deg
 
 def moving_average(array, window_size=5):
-    """Simple moving average to smooth out noisy foot y-coordinates."""
     if len(array) < window_size:
         return array
     cumsum = np.cumsum(np.insert(array, 0, 0))
     return (cumsum[window_size:] - cumsum[:-window_size]) / float(window_size)
 
 def detect_strikes_using_velocity(y_positions, vel_threshold=0.0005):
-    """
-    Return indices where velocity crosses from negative to positive.
-    y_positions is 1D array of foot Y-coordinates.
-    """
     strikes = []
     velocities = np.diff(y_positions)
     for i in range(1, len(velocities)):
@@ -310,9 +649,6 @@ def detect_strikes_using_velocity(y_positions, vel_threshold=0.0005):
     return strikes
 
 def detect_local_minima(data, delta=0.005):
-    """
-    Return indices of local minima with threshold delta.
-    """
     minima_indices = []
     for i in range(1, len(data) - 1):
         if data[i] < data[i - 1] and data[i] < data[i + 1]:
@@ -320,10 +656,6 @@ def detect_local_minima(data, delta=0.005):
                 minima_indices.append(i)
     return minima_indices
 
-
-#############################
-# Main Analysis Function
-#############################
 def analyze_running_form(video_path, output_path="output_traced.mp4"):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -349,24 +681,20 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
 
     left_side_angles = []
     right_side_angles = []
-
     left_foot_index_y = []
     left_heel_y = []
     right_foot_index_y = []
     right_heel_y = []
 
-    arm_cross_count_left = 0
-    arm_cross_count_right = 0
-    frame_count = 0
-
     spine_angles = []
     head_angles = []
     left_knee_drive = []
     right_knee_drive = []
-
     stride_distances = []
     left_arm_distances = []
     right_arm_distances = []
+
+    frame_count = 0
 
     while True:
         success, frame = cap.read()
@@ -384,14 +712,12 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
             right_shoulder = (lm[12].x, lm[12].y)
             left_hip = (lm[23].x, lm[23].y)
             right_hip = (lm[24].x, lm[24].y)
-
             left_knee_pt = (lm[25].x, lm[25].y)
             right_knee_pt = (lm[26].x, lm[26].y)
             left_heel_pt = (lm[29].x, lm[29].y)
             right_heel_pt = (lm[30].x, lm[30].y)
             left_foot_idx = (lm[31].x, lm[31].y)
             right_foot_idx = (lm[32].x, lm[32].y)
-
             nose_pt = (lm[0].x, lm[0].y)
             left_wrist = (lm[15].x, lm[15].y)
             right_wrist = (lm[16].x, lm[16].y)
@@ -405,40 +731,39 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
                 (left_hip[1] + right_hip[1]) / 2.0
             )
 
+            # Angles
             angle_left_side  = calculate_angle_2d(left_shoulder, left_hip, left_knee_pt)
             angle_right_side = calculate_angle_2d(right_shoulder, right_hip, right_knee_pt)
             left_side_angles.append(angle_left_side)
             right_side_angles.append(angle_right_side)
 
+            # Feet / Heels
             left_foot_index_y.append(left_foot_idx[1])
             left_heel_y.append(left_heel_pt[1])
             right_foot_index_y.append(right_foot_idx[1])
             right_heel_y.append(right_heel_pt[1])
 
-            mid_shoulder_x = mid_shoulder[0]
-            if left_wrist[0] > mid_shoulder_x:
-                arm_cross_count_left += 1
-            if right_wrist[0] < mid_shoulder_x:
-                arm_cross_count_right += 1
-
+            # Spine & head
             spine_angle = vector_angle_with_vertical(mid_shoulder, mid_hip)
             spine_angles.append(spine_angle)
-
-            head_angle = vector_angle_with_vertical(mid_shoulder, nose_pt)
+            head_angle  = vector_angle_with_vertical(mid_shoulder, nose_pt)
             head_angles.append(head_angle)
 
-            # Use absolute difference so we never get negatives:
+            # Knees
             raw_left_knee = left_hip[1] - left_knee_pt[1]
             raw_right_knee = right_hip[1] - right_knee_pt[1]
             left_knee_drive.append(abs(raw_left_knee))
             right_knee_drive.append(abs(raw_right_knee))
 
+            # Stride
             dist_feet = distance_2d(left_foot_idx, right_foot_idx)
             stride_distances.append(dist_feet)
 
+            # Arms
             left_arm_distances.append(abs(left_wrist[0] - left_shoulder[0]))
             right_arm_distances.append(abs(right_wrist[0] - right_shoulder[0]))
 
+            # Draw landmarks
             mp_drawing.draw_landmarks(
                 frame,
                 results.pose_landmarks,
@@ -455,6 +780,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     if duration_sec <= 0:
         duration_sec = 1.0
 
+    # Summaries
     avg_left_angle = np.mean(left_side_angles) if left_side_angles else 0
     avg_right_angle = np.mean(right_side_angles) if right_side_angles else 0
 
@@ -472,9 +798,9 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     posture_left = posture_feedback(avg_left_angle)
     posture_right = posture_feedback(avg_right_angle)
 
+    # Foot strike detection
     smoothed_left_idx_y = moving_average(left_foot_index_y, window_size=5)
     smoothed_right_idx_y = moving_average(right_foot_index_y, window_size=5)
-
     left_vel_strikes = detect_strikes_using_velocity(smoothed_left_idx_y)
     right_vel_strikes = detect_strikes_using_velocity(smoothed_right_idx_y)
     total_foot_strikes = len(left_vel_strikes) + len(right_vel_strikes)
@@ -484,7 +810,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
 
     left_heel_strikes = 0
     right_heel_strikes = 0
-
     for i in left_minima:
         if i < len(left_heel_y):
             if left_heel_y[i] >= left_foot_index_y[i]:
@@ -502,23 +827,22 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
 
     spm = total_foot_strikes / (duration_sec / 60.0) if total_foot_strikes > 0 else 0.0
 
+    # Spine
     avg_spine_angle = np.mean(spine_angles) if spine_angles else 0
     if avg_spine_angle < 10:
         spine_feedback = "Spine looks upright"
     else:
         spine_feedback = f"Spine angled ~{int(avg_spine_angle)}° from vertical"
 
-    # Lower the forward tilt threshold from 25 to 20
+    # Head
     avg_head_angle = np.mean(head_angles) if head_angles else 0
     if avg_head_angle < 135:
         head_feedback = "Head is tilted/forward"
     else:
         head_feedback = "Head position looks good"
 
+    # Knee drive
     def knee_drive_feedback(val):
-        # If val > 0.30 => 'Very high knee lift'
-        # If val > 0.15 => 'Good knee height'
-        # else => 'Low knee lift'
         if val > 0.30:
             return "Very high knee lift"
         elif val > 0.15:
@@ -531,6 +855,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     left_knee_feedback = knee_drive_feedback(avg_left_knee_drive)
     right_knee_feedback = knee_drive_feedback(avg_right_knee_drive)
 
+    # Stride length
     avg_stride_length = np.mean(stride_distances) if stride_distances else 0
     if avg_stride_length < 0.1:
         stride_feedback = f"Short stride (avg ~{avg_stride_length:.2f})"
@@ -539,6 +864,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         stride_feedback = f"Good stride length (avg ~{avg_stride_length:.2f})"
 
+    # Arm swing
     max_left_arm_amp = np.max(left_arm_distances) if left_arm_distances else 0
     max_right_arm_amp = np.max(right_arm_distances) if right_arm_distances else 0
     excessive_arm_swing = False
@@ -554,26 +880,21 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         arm_swing_comment = "Arm swing amplitude looks good."
 
+    # Summarize textual feedback
     feedback_messages = []
-
     if "forward" in posture_left.lower() or "forward" in posture_right.lower():
         feedback_messages.append("Try to maintain a more upright torso to reduce forward lean.")
     if "backward" in posture_left.lower() or "backward" in posture_right.lower():
         feedback_messages.append("You may be leaning backward. Keep shoulders over hips for efficiency.")
-
     if "angled" in spine_feedback.lower():
         feedback_messages.append(spine_feedback)
-
     if "tilted" in head_feedback.lower():
         feedback_messages.append(head_feedback)
-
     if ("low" in left_knee_feedback.lower() or "very" in left_knee_feedback.lower() or
         "low" in right_knee_feedback.lower() or "very" in right_knee_feedback.lower()):
         feedback_messages.append(f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}")
-
     if excessive_arm_swing:
         feedback_messages.append("You may be swinging your arms too far on more compact arm drive.")
-
     if not_enough_arm_swing:
         feedback_messages.append("Increase arm swing amplitude slightly for more power and balance.")
 
@@ -595,40 +916,34 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         feedback_messages.append("No foot strikes detected—video too short or detection issue?")
 
     feedback_messages.append(stride_feedback)
-
     if not any(msg for msg in feedback_messages if msg != stride_feedback):
         feedback_messages.append("Great form overall! Keep up the good work.")
 
+    # Recommended drills
     recommended_exercises = []
-
     if any("forward lean" in msg.lower() for msg in feedback_messages):
         recommended_exercises.append("Core exercises (planks) to support upright posture")
         recommended_exercises.append("Wall stands or leaning drills to maintain neutral spine")
-
     if "spine angled" in " ".join(feedback_messages).lower():
         recommended_exercises.append("Spine mobility & stability exercises (cat-camel, bird-dog, etc.)")
-
     if "tilted" in " ".join(feedback_messages).lower():
         recommended_exercises.append("Neck stretches and posture awareness drills. Keep eyes forward.")
-
     if "low knee lift" in " ".join(feedback_messages).lower():
         recommended_exercises.append("Knee drive drills (high-knee marching/running)")
-
     if any("heel-striking" in msg.lower() for msg in feedback_messages):
         recommended_exercises.append("Short stride drills: land midfoot under center of mass")
         recommended_exercises.append("Light barefoot strides (on a safe surface) to encourage softer foot strike")
-
     if "short stride" in stride_feedback.lower():
         recommended_exercises.append("Drills focusing on slightly longer push-off and extension")
     elif "long stride" in stride_feedback.lower():
         recommended_exercises.append("Overstriding fix: emphasize landing with foot under hips")
-
     if not recommended_exercises:
         recommended_exercises = ["No major issues detected. Keep training consistently!"]
 
+    # Build analysis_categories
     analysis_categories = []
 
-    # POSTURE
+    # 1) POSTURE
     posture_item = {
         "title": "Posture",
         "status": "right",
@@ -641,24 +956,21 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         posture_item["issue_description"] = f"Runner is {posture_left} on left, {posture_right} on right"
         posture_item["potential_health_issues"] = "Excess strain on lower back or hips"
 
-    # **Attach resources** if status is wrong:
+    # If 'wrong', attach resources
     if posture_item["status"] == "wrong":
-        # Check if potential_health_issues is in PROBLEM_RESOURCES
-        if posture_item["potential_health_issues"] in PROBLEM_RESOURCES:
-            resources = PROBLEM_RESOURCES[posture_item["potential_health_issues"]]
-            posture_item["articles"] = resources["articles"]
-            posture_item["exercises"] = resources["exercises"]
+        issue_key = posture_item["potential_health_issues"]
+        if issue_key in PROBLEM_RESOURCES:
+            posture_item["articles"] = PROBLEM_RESOURCES[issue_key]["articles"]
+            posture_item["exercises"] = PROBLEM_RESOURCES[issue_key]["exercises"]
         else:
             posture_item["articles"] = []
             posture_item["exercises"] = []
     else:
-        # For "right" categories, you can either omit these or set them to empty
         posture_item["articles"] = []
         posture_item["exercises"] = []
-
     analysis_categories.append(posture_item)
 
-    # SPINE
+    # 2) SPINE
     spine_item = {
         "title": "Spine Alignment",
         "status": "right",
@@ -668,7 +980,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     if "angled" in spine_feedback.lower():
         spine_item["status"] = "wrong"
         spine_item["issue_description"] = spine_feedback
-        spine_item["potential_health_issues"] = "Excess strain on lower back or hips"
+        spine_item["potential_health_issues"] = "Can cause back pain or poor running economy"
 
     if spine_item["status"] == "wrong":
         key = spine_item["potential_health_issues"]
@@ -681,10 +993,9 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         spine_item["articles"] = []
         spine_item["exercises"] = []
+    analysis_categories.append(spine_item)
 
-        analysis_categories.append(spine_item)
-
-    # HEAD
+    # 3) HEAD
     head_item = {
         "title": "Head Position",
         "status": "right",
@@ -707,13 +1018,9 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         head_item["articles"] = []
         head_item["exercises"] = []
-
     analysis_categories.append(head_item)
 
-
-#################################################
-# KNEE DRIVE
-#################################################
+    # 4) KNEE DRIVE
     knee_item = {
         "title": "Knee Drive",
         "status": "right",
@@ -733,7 +1040,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         knee_item["issue_description"] = f"Left knee: {left_knee_feedback}, Right knee: {right_knee_feedback}"
         knee_item["potential_health_issues"] = "Could cause extra energy expenditure"
 
-    # Attach resources if 'wrong'
     if knee_item["status"] == "wrong":
         key = knee_item["potential_health_issues"]
         if key in PROBLEM_RESOURCES:
@@ -743,34 +1049,29 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
             knee_item["articles"] = []
             knee_item["exercises"] = []
     else:
-        # If 'right', you can store empty lists or omit these fields
         knee_item["articles"] = []
         knee_item["exercises"] = []
-
     analysis_categories.append(knee_item)
-    
-    # FOOT STRIKE
+
+    # 5) FOOT STRIKE
     foot_item = {
         "title": "Foot Strike",
         "status": "right",
         "issue_description": "No issue",
         "potential_health_issues": "None"
     }
-
+    percent_heel = round(heel_strike_ratio * 100, 1)
     if percent_heel > 70:
         foot_item["status"] = "wrong"
         foot_item["issue_description"] = f"Predominantly heel-striking (~{percent_heel}% heel)"
         foot_item["potential_health_issues"] = "Higher impact on knees and shins"
     elif percent_heel > 30:
-        foot_item["status"] = "right"
         foot_item["issue_description"] = f"Mixed foot strike (~{percent_heel}% heel)"
         foot_item["potential_health_issues"] = "Generally okay, watch for any imbalance"
     else:
-        foot_item["status"] = "right"
         foot_item["issue_description"] = f"Mostly forefoot/midfoot (~{percent_heel}% heel)"
         foot_item["potential_health_issues"] = "None"
 
-    # Attach resources if 'wrong'
     if foot_item["status"] == "wrong":
         key = foot_item["potential_health_issues"]
         if key in PROBLEM_RESOURCES:
@@ -782,10 +1083,9 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         foot_item["articles"] = []
         foot_item["exercises"] = []
-
     analysis_categories.append(foot_item)
 
-    # STRIDE LENGTH
+    # 6) STRIDE LENGTH
     stride_item = {
         "title": "Stride Length",
         "status": "right",
@@ -802,7 +1102,6 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         stride_item["issue_description"] = stride_feedback
         stride_item["potential_health_issues"] = "Overstriding can stress knees & hamstrings"
 
-    # Attach resources if 'wrong'
     if stride_item["status"] == "wrong":
         key = stride_item["potential_health_issues"]
         if key in PROBLEM_RESOURCES:
@@ -814,10 +1113,9 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         stride_item["articles"] = []
         stride_item["exercises"] = []
-
     analysis_categories.append(stride_item)
 
-    # ARM SWING (Amplitude)
+    # 7) ARM SWING
     arm_amp_item = {
         "title": "Arm Swing (Amplitude)",
         "status": "right",
@@ -830,20 +1128,18 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         arm_amp_item["status"] = "wrong"
         arm_amp_item["issue_description"] = "Excessive horizontal arm swing"
         arm_amp_item["potential_health_issues"] = "Shoulder/neck fatigue, wasted energy"
-
     if not_enough_arm_swing:
-        # If both happen, this will overwrite status/issue_description again
-        # Adjust logic if you want them separate or combined
         arm_amp_item["status"] = "wrong"
-        arm_amp_item["issue_description"] = "Insufficient arm swing causing reduced balance, less power in stride"
-
-        # If it was "None", set it; otherwise, append to existing
-        if arm_amp_item["potential_health_issues"] == "None":
+        if arm_amp_item["issue_description"] == "No issue":
+            arm_amp_item["issue_description"] = "Insufficient arm swing causing reduced balance, less power in stride"
             arm_amp_item["potential_health_issues"] = "Less balance, less power"
         else:
-            arm_amp_item["potential_health_issues"] += ", plus reduced balance/power"
+            arm_amp_item["issue_description"] += "; also insufficient swing"
+            if arm_amp_item["potential_health_issues"] == "None":
+                arm_amp_item["potential_health_issues"] = "Less balance, less power"
+            else:
+                arm_amp_item["potential_health_issues"] += ", plus reduced balance/power"
 
-    # Attach resources if 'wrong'
     if arm_amp_item["status"] == "wrong":
         key = arm_amp_item["potential_health_issues"]
         if key in PROBLEM_RESOURCES:
@@ -855,14 +1151,11 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     else:
         arm_amp_item["articles"] = []
         arm_amp_item["exercises"] = []
-
     analysis_categories.append(arm_amp_item)
 
-    # Calculate a "score" out of 100 based on how many categories are "wrong"
+    # Final form score
     total_cats = len(analysis_categories)
     wrong_count = sum(1 for cat in analysis_categories if cat["status"] == "wrong")
-
-    # Simple approach: each wrong category deducts a fraction from 100.
     raw_score = 100 * (1 - wrong_count / total_cats)
     form_score = max(0, min(100, round(raw_score)))
 
@@ -891,43 +1184,105 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
         "arm_swing_amplitude_comment": arm_swing_comment,
         "recommended_exercises": recommended_exercises,
         "analysis_categories": analysis_categories,
-        "form_score": form_score,  # Our new form score
+        "form_score": form_score,
         "traced_video_path": output_path
     }
-
     return results
 
-##################
-# Main Entry Point
-##################
-def main():
-    parser = argparse.ArgumentParser(
-        description="Analyze running form, then get Claude's coach advice."
-    )
-    parser.add_argument("--video", type=str, required=True, help="Path to the input video file (e.g. video.mp4).")
-    parser.add_argument("--output", type=str, default="output_traced.mp4", help="Path to the output traced video.")
-    args = parser.parse_args()
+##############################################
+# 7) Flask Endpoint: /analyze
+##############################################
 
-    # 1) Analyze the running form
-    results = analyze_running_form(args.video, args.output)
+@app.route("/analyze", methods=["POST"])
+def analyze_endpoint():
+    """
+    1) Save user-uploaded "bad runner" video
+    2) Hard-code "goodForm.mp4" for overlay
+    3) Generate 6 .avi videos (skeleton+overlay+heatmap) with original + white bg
+    4) Convert .avi -> .mp4
+    5) Upload all .mp4 to S3
+    6) analyze_running_form, call Claude
+    7) Return JSON with everything
+    """
+    if "video" not in request.files:
+        return jsonify({"error": "No video file uploaded"}), 400
 
-    # 2) Get Claude Coach Suggestions
+    video_file = request.files["video"]
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp:
+        bad_runner_path = temp.name
+        video_file.save(bad_runner_path)
+
+    good_runner_path = "goodForm.mp4"  # local file for overlay
+    traced_output_path = bad_runner_path.replace(".mp4", "_traced.mp4")
+
+    # 1) Create skeleton, overlay, heatmap (orig background)
+    skeleton_avi = bad_runner_path + "_skeleton.avi"
+    create_bad_runner_skeleton(bad_runner_path, skeleton_avi, white_bg=False)
+
+    overlay_avi = bad_runner_path + "_overlay.avi"
+    create_bad_runner_with_good_overlay(bad_runner_path, good_runner_path, overlay_avi, white_bg=False)
+
+    heatmap_avi  = bad_runner_path + "_heatmap.avi"
+    create_bad_runner_heatmap(bad_runner_path, heatmap_avi, white_bg=False)
+
+    # 3) Convert each .avi -> .mp4
+    skeleton_mp4       = skeleton_avi.replace(".avi", ".mp4")
+    overlay_mp4        = overlay_avi.replace(".avi", ".mp4")
+    heatmap_mp4        = heatmap_avi.replace(".avi", ".mp4")
+
+    all_avi_mp4_pairs = [
+        (skeleton_avi,       skeleton_mp4),
+        (overlay_avi,        overlay_mp4),
+        (heatmap_avi,        heatmap_mp4)
+    ]
+
+    for (avi_file, mp4_file) in all_avi_mp4_pairs:
+        convertAVItoMP4(avi_file, mp4_file)
+
+    # 4) Upload all .mp4 to S3
+    bucket_name = "formflow-videos"
+    s3_links = {}
+    final_mp4_list = [
+        skeleton_mp4,
+        overlay_mp4,
+        heatmap_mp4
+    ]
+
+    for vid_path in final_mp4_list:
+        s3_key = f"initalvids/{os.path.basename(vid_path)}"
+        upload_to_s3(vid_path, bucket_name, s3_key)
+        s3_links[os.path.basename(vid_path)] = f"s3://{bucket_name}/{s3_key}"
+
+    # 5) Actually analyze running form -> traced video
+    results = analyze_running_form(bad_runner_path, traced_output_path)
+    if "error" in results:
+        return jsonify(results), 400
+
+    # 6) Call Claude
     claude_suggestions = call_claude_coach(results["analysis_categories"])
     results.update(claude_suggestions)
 
-    # 3) Convert list-based categories to a dict keyed by each category title
+    # Optionally upload the traced video to S3, if it exists
+    if os.path.exists(traced_output_path):
+        traced_key = f"initalvids/{os.path.basename(traced_output_path)}"
+        upload_to_s3(traced_output_path, bucket_name, traced_key)
+        s3_links[os.path.basename(traced_output_path)] = f"s3://{bucket_name}/{traced_key}"
+
+    results["generated_videos"] = s3_links
+
+    # Convert list-based categories to dict for final JSON structure
     analysis_categories_dict = {
-    cat["title"]: {
-        "status": cat["status"],
-        "issue_description": cat["issue_description"],
-        "potential_health_issues": cat["potential_health_issues"],
-        "articles": cat.get("articles", []),
-        "exercises": cat.get("exercises", [])
-    }
-        for cat in results["analysis_categories"]  # <-- use results["analysis_categories"] here
+        cat["title"]: {
+            "status": cat["status"],
+            "issue_description": cat["issue_description"],
+            "potential_health_issues": cat["potential_health_issues"],
+            "articles": cat.get("articles", []),
+            "exercises": cat.get("exercises", [])
+        }
+        for cat in results["analysis_categories"]
     }
 
-    # 3) Structure JSON response properly
+    # 7) Structure and return final JSON
     response = {
         "statusCode": 200,
         "body": {
@@ -979,12 +1334,19 @@ def main():
             "recommended_exercises": results["recommended_exercises"],
             "analysis_categories": analysis_categories_dict,
             "traced_video_path": results["traced_video_path"],
-            "claude_suggestions": results["claude_suggestions"]
+            "claude_suggestions": results.get("claude_suggestions"),
+            "generated_videos": results["generated_videos"]
         }
     }
-    
-    # 4) Print structured JSON output
-    print(json.dumps(response, indent=2))
+    return jsonify(response)
 
+
+@app.route("/")
+def health_check():
+    return "Running form analysis + skeleton/heatmap + overlay (6 videos) is up and running!", 200
+
+##############################################
+# 8) Main Launch
+##############################################
 if __name__ == "__main__":
-    main()
+    app.run(host="0.0.0.0", port=5001, debug=True)
