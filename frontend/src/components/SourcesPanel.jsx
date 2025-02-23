@@ -3,6 +3,8 @@ import RunVideo from "./RunVideo";
 import { MdOutlineFileUpload } from "react-icons/md";
 import CustomDropdown from "./CustomDropdown";
 import colors from "../colors";
+import { Rings } from "react-loader-spinner";
+import axios from "axios";
 
 const SourcesPanel = ({
   id,
@@ -12,6 +14,7 @@ const SourcesPanel = ({
   videos,
   setVideos,
 }) => {
+  const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null); // Ref to trigger hidden file input
 
@@ -29,16 +32,38 @@ const SourcesPanel = ({
   };
 
   // Handle video upload
-  const handleUpload = () => {
-    if (selectedFile) {
-      const videoUrl = URL.createObjectURL(selectedFile);
-
-      // call backend here
-
-      setVideos([videoUrl, ...videos]); // Add to videos state
-      setSelectedFile(null); // Clear preview
+  async function handleUpload() {
+    console.log("Uploading video...");
+    if (!selectedFile) {
+      console.error("No file selected");
+      return;
     }
-  };
+    const videoUrl = URL.createObjectURL(selectedFile);
+    console.log("Created object URL:", videoUrl);
+    try {
+      const formData = new FormData();
+      formData.append("video", selectedFile);
+      console.log("FormData created");
+      const response = await axios.post(
+        "http://localhost:5001/analyze",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      console.log("Upload successful:", response.data); // Ensure we're using the latest state
+      setVideos((prevVideos) => [videoUrl, ...prevVideos]);
+      setSelectedFile(null); // Clear after upload completes
+    } catch (error) {
+      console.error("Error uploading video:", error);
+    } // Cleanup the created object URL when the component unmounts
+    useEffect(() => {
+      return () => {
+        URL.revokeObjectURL(videoUrl);
+      };
+    }, [videoUrl]);
+    console.log("Upload process complete");
+  }
 
   // Handle cancel preview
   const handleCancel = (e) => {
@@ -54,14 +79,33 @@ const SourcesPanel = ({
 
   return (
     <div
-      className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-start text-left p-6 border-2 border-[#444444] justify-between hover:border-[#555555] hover:scale-101`}
+      className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-start text-left p-6 border-[#444444] justify-between hover:border-[#555555] hover:scale-101 relative`}
       style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
+      {/* Spinner Overlay */}
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-xl z-10">
+          <Rings
+            height="80"
+            width="80"
+            radius="9"
+            color="white" // Orange accent
+            ariaLabel="audio-loading"
+            wrapperStyle={{}}
+            wrapperClass=""
+            visible={true}
+          />
+        </div>
+      )}
+
       {/* Title and Upload Section */}
-      <div className="w-full flex flex-col items-start">
+      <div
+        className="w-full flex flex-col items-start gap-4"
+        style={{ opacity: loading ? 0.5 : 1 }}
+      >
         <div className="w-full">
-          <h2 className="text-[#FF5733] font-montserrat font-bold mb-2">
+          <h2 className="text-[#FF5733] font-montserrat font-bold mb-2 border-b-1 border-[#FF5733] mb-4">
             {title}
           </h2>
 
@@ -131,7 +175,7 @@ const SourcesPanel = ({
               handleUpload();
             }}
             className={`mt-4 px-4 py-2 rounded-xl text-white font-montserrat cursor-pointer transition-colors duration-300 ${
-              selectedFile
+              selectedFile && !loading
                 ? "bg-[#FF5733] hover:bg-[#e04e2d]"
                 : "bg-gray-500 cursor-not-allowed"
             }`}
@@ -142,7 +186,9 @@ const SourcesPanel = ({
       </div>
 
       {/* Most Recent Video */}
-      <RunVideo videoUrl={videos.length > 0 ? videos[0] : null} />
+      <div style={{ opacity: loading ? 0.5 : 1 }}>
+        <RunVideo videoUrl={videos.length > 0 ? videos[0] : null} />
+      </div>
     </div>
   );
 };

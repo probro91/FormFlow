@@ -9,7 +9,6 @@ const ThreePanelUI = () => {
   const [activePanel, setActivePanel] = useState(null);
   const [videos, setVideos] = useState([]);
   const [tips, setTips] = useState([]);
-  const [expandedTip, setExpandedTip] = useState(null);
   const [sources, setSources] = useState([]);
   // State for TipsPanel
   const [cadenceData, setCadenceData] = useState(null); // Could be populated from real data
@@ -58,8 +57,7 @@ const ThreePanelUI = () => {
               title={panel.title}
               activePanel={activePanel}
               setActivePanel={setActivePanel}
-              expandedTip={expandedTip}
-              setExpandedTip={setExpandedTip}
+              tips={tips}
             />
             <GraphsPanel
               key={panel.id}

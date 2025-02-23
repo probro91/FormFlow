@@ -52,7 +52,7 @@ const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
 
   return (
     <div
-      className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-center text-center border-2 border-[#444444] hover:border-[#555555] hover:scale-101`}
+      className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-center text-center border-[#444444] hover:border-[#555555] hover:scale-101`}
       style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
@@ -60,10 +60,10 @@ const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
       <div className="w-full h-full p-5 flex flex-col items-center justify-start gap-8">
         {/* Top Half: Exercise Suggestions */}
         <div className="w-full">
-          <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold text-left">
+          <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold text-left flex flex-col items-start gap-2 border-b-1 border-[#FF5733] mb-4">
             {title}
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {exercises.map((exercise) => (
               <div
                 key={exercise.id}

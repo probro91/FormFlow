@@ -1,30 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { RiArrowDropDownLine } from "react-icons/ri";
 import Source from "./Source";
 import colors from "../colors";
 
-const TipsPanel = ({
-  id,
-  title,
-  activePanel,
-  setActivePanel,
-  expandedTip,
-  setExpandedTip,
-  stats, // Keeping stats prop for circular meters
-}) => {
-  // Default stats if none provided
-  const defaultStats = {
-    avgCadence: "180",
-    avgStrideLength: "1.2 m",
-    footStrike: "Heel",
-    overallScore: "85",
-  };
+const TipsPanel = ({ id, title, activePanel, tips, setActivePanel }) => {
+  const [expandedTip, setExpandedTip] = useState(null);
 
-  const { avgCadence, avgStrideLength, footStrike, overallScore } =
-    stats || defaultStats;
-
-  // Placeholder data for tips
-  const tips = [
+  const tipsDummyData = [
     {
       id: 1,
       type: "green",
@@ -67,21 +49,23 @@ const TipsPanel = ({
     },
   ];
 
+  const tipsArray = tips.length > 0 ? tips : tipsDummyData;
+
   return (
     <div
-      className={`text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-center text-center border-2 hover:scale-101 hover:border-[#555555] border-[#444444]`}
+      className={`text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-center text-center hover:scale-101 hover:border-[#555555] border-[#444444]`}
       style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
       {/* Scrollable Content Container */}
-      <div className="w-full p-5 flex flex-col items-center justify-between gap-8">
+      <div className="w-full p-6 flex flex-col items-center justify-between gap-8">
         {/* Tips List */}
         <div className="w-full flex flex-col items-start">
-          <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold">
-            Tips
+          <h2 className="text-[#FF5733] mb-2 font-montserrat font-bold border-b-1 border-[#FF5733] w-full text-left mb-4">
+            {title}
           </h2>
-          <div className="space-y-4 w-full">
-            {tips.map((tip) => (
+          <div className="space-y-2 w-full">
+            {tipsArray.map((tip) => (
               <div
                 key={tip.id}
                 className={`p-4 rounded-xl transition-all duration-300 w-full text-left border-1 border-[#444444] 

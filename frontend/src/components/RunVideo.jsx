@@ -40,22 +40,8 @@ const RunVideo = ({ videoUrl }) => {
         </video>
 
         {/* Icon Buttons Container */}
-        <div className="absolute top-0 left-0 flex gap-2 items-center w-full justify-between p-2">
+        <div className="absolute top-0 right-0 flex gap-2 items-center justify-between p-2">
           {/* Toggle Background Button */}
-          <div
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent video controls interference
-              toggleBackground();
-            }}
-            className="p-2 bg-[#444444] rounded-full text-[#FF5733] hover:bg-[#555555] transition-colors duration-300"
-            title={isBackgroundVisible ? "Hide Background" : "Show Background"}
-          >
-            {isBackgroundVisible ? (
-              <FaEyeSlash size={16} className="text-[#FF5733]" />
-            ) : (
-              <FaEye size={16} className="text-white" />
-            )}
-          </div>
 
           {/* Mode Button Group */}
           <div className="flex gap-1 bg-[#444444] rounded-full border border-[#555555]">
