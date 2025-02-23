@@ -7,6 +7,7 @@ import axios from "axios";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Rings } from "react-loader-spinner";
 
+
 const s3Client = new S3Client({
   region: import.meta.env.VITE_AWS_REGION,
   credentials: {
@@ -31,37 +32,47 @@ const SourcesPanel = ({
   const fileInputRef = useRef(null); // Ref to trigger hidden file input
   const [processedVideos, setProcessedVideos] = useState({});
 
-  const videoFiles = {
-    heatmap: "initalvids/tmp8rm4sxe_.mp4_heatmap.mp4",
-    overlay: "initalvids/tmp8rm4sxe_.mp4_overlay.mp4",
-    skeleton: "initalvids/tmp8rm4sxe_.mp4_skeleton.mp4",
-  };
-
-  const fetchVideos = async () => {
+  const fetchVideos = async (generated_videos) => {
     try {
-      const videoPromises = Object.entries(videoFiles).map(
-        async ([key, keyPath]) => {
-          const params = {
-            Bucket: "formflow-videos",
-            Key: keyPath,
-          };
+      console.log("generated_videos:", generated_videos);
+      let s3links = [];
+      for (const key in generated_videos) {
+        const s3file = "https://formflow-videos.s3.us-east-1.amazonaws.com/initalvids/" + key;
+        s3links.push(s3file);
+      }
+      // const videoPromises = Object.entries(generated_videos).map(
+      //   async ([key, keyPath]) => {
+      //     const s3file = "https://formflow-videos.s3.us-east-1.amazonaws.com/initalvids/" + key;
+      //     console.log("s3file:", s3file);
+      //     return s3file;
+      //   }
+      // );
+      //   async ([key, keyPath]) => {
+      //     console.log("Fetching video:", key, keyPath);
+      //     const params = {
+      //       Bucket: "formflow-videos",
+      //       Key: "https://formflow-videos." + keyPath,
+      //     };
 
-          const command = new GetObjectCommand(params);
-          const { Body } = await s3Client.send(command);
-          const blob = await streamToBlob(Body, "video/mp4");
+      //     const command = new GetObjectCommand(params);
+      //     const { Body } = await s3Client.send(command);
+      //     const blob = await streamToBlob(Body, "video/mp4");
 
-          return { key, blob };
-        }
-      );
+      //     return { key, blob };
+      //   }
+      // );
 
-      const results = await Promise.all(videoPromises); // Store the videos in state
+      // const results = await Promise.all(videoPromises); // Store the videos in state
+      // console.log("Fetched videos:", results);
 
-      setProcessedVideos(
-        results.reduce((acc, { key, blob }) => {
-          acc[key] = blob;
-          return acc;
-        }, {})
-      );
+      // setProcessedVideos(
+      //   results.reduce((acc, { key, blob }) => {
+      //     acc[key] = blob;
+      //     return acc;
+      //   }, {})
+      // );
+      console.log("s3links:", s3links);
+      setProcessedVideos(s3links);
     } catch (error) {
       console.error("Error fetching videos:", error);
     }
@@ -128,7 +139,7 @@ const SourcesPanel = ({
       setChatBot(claudeResponse);
       setVideos((prevVideos) => [videoUrl, ...prevVideos]);
       setSelectedFile(null); // Clear after upload completes
-      fetchVideos();
+      fetchVideos(response.data.body.generated_videos);
 
       setLoading(false);
     } catch (error) {
