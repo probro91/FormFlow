@@ -30,6 +30,7 @@ app = Flask(__name__)
 client = Anthropic(api_key=claude_api_key)
 CORS(app)
 
+
 # ---------------------------
 # PROBLEM_RESOURCES dictionary
 # ---------------------------
@@ -38,7 +39,7 @@ PROBLEM_RESOURCES = {
     "Excess strain on lower back or hips": {
         "articles": [
             {
-                "title": "How to Prevent and Treat Lower Back Pain from Running",
+                "title": "How to Prevent and Treat Lower Back Painfrom Running",
                 "url": "https://www.runnersworld.com/health-injuries/a20865586/back-pain-and-running/",
                 "description": "Practical tips to reduce lower-back strain through posture and core strengthening.",
                 "image": "https://hips.hearstapps.com/hmg-prod/images/gettyimages-1304825852.jpg"
@@ -51,13 +52,22 @@ PROBLEM_RESOURCES = {
             }
         ],
         "exercises": [
-            "Planks or side planks to strengthen core and stabilize spine.",
-            "Wall sits for posture alignment and hip engagement.",
-            "Hip flexor stretches (kneeling lunge) to relieve tightness."
+            {
+                "name": "Planks or side planks to strengthen core and stabilize spine.",
+                "youtube_link": "https://www.youtube.com/watch?v=0Rl5ZQwmS-o&ab_channel=ReleasePhysicalTherapyWashingtonDC"
+            },
+            {
+                "name": "Wall sits for posture alignment and hip engagement.",
+                "youtube_link": "https://www.youtube.com/watch?v=A0i_X3pj3I4&ab_channel=NielsenFitnessPremiumIn-Home%28andVirtual%29PersonalTraining"
+            },
+            {
+                "name": "Hip flexor stretches (kneeling lunge) to relieve tightness.",
+                "youtube_link": "https://www.youtube.com/watch?v=UrHcQJCqo4Q&t=198s&ab_channel=ToneandTighten"
+            }
         ]
     },
 
-    # 2) Can cause back pain or poor running economy (Spine alignment)
+    # 2) Spine alignment issues
     "Can cause back pain or poor running economy": {
         "articles": [
             {
@@ -68,12 +78,18 @@ PROBLEM_RESOURCES = {
             }
         ],
         "exercises": [
-            "Cat-Camel stretches to mobilize the spine.",
-            "Bird-Dog to strengthen deep core stabilizers."
+            {
+                "name": "Cat-Camel stretches to mobilize the spine.",
+                "youtube_link": "https://www.youtube.com/watch?v=Ddz-U9nF_B8&ab_channel=LuStrength%26Therapy"
+            },
+            {
+                "name": "Bird-Dog to strengthen deep core stabilizers.",
+                "youtube_link": "https://www.youtube.com/watch?v=xOmNXw8F694&ab_channel=MovementReborn"
+            }
         ]
     },
 
-    # 3) Neck strain or upper back tension (Head position)
+    # 3) Neck strain or upper back tension
     "Neck strain or upper back tension": {
         "articles": [
             {
@@ -84,8 +100,14 @@ PROBLEM_RESOURCES = {
             }
         ],
         "exercises": [
-            "Gentle neck mobility drills (rotations, tilts).",
-            "Shoulder shrugs and scapular retractions to release upper back tension."
+            {
+                "name": "Gentle neck mobility drills (rotations, tilts).",
+                "youtube_link": "https://www.youtube.com/watch?v=K4dmZ5_n6uU&ab_channel=MarkWildman"
+            },
+            {
+                "name": "Shoulder shrugs and scapular retractions to release upper back tension.",
+                "youtube_link": "https://www.youtube.com/watch?v=M2F-QI6h5Yc&ab_channel=SpineCareDecompressionandChiropracticCenter"
+            }
         ]
     },
 
@@ -96,26 +118,18 @@ PROBLEM_RESOURCES = {
                 "title": "Running Efficiency 101",
                 "url": "https://www.runnersworld.com/training/a20787239/running-efficiency-tips/",
                 "description": "Advice on improving knee drive and stride mechanics for better performance.",
-                "image": "https://hips.hearstapps.com/hmg-prod/images/running-efficiency-101.jpg" 
+                "image": "https://hips.hearstapps.com/hmg-prod/images/running-efficiency-101.jpg"
             }
         ],
         "exercises": [
-            "High-knee drills to reinforce knee lift.",
-            "Form strides focusing on a quick, powerful knee drive."
-        ]
-    },
-    "Could cause extra energy expenditure": {
-        "articles": [
             {
-                "title": "Avoiding Excess Energy Loss in Running",
-                "url": "https://www.active.com/running/articles/5-ways-to-save-energy-during-your-run",
-                "description": "Identify sources of wasted motion and refine your form for efficiency.",
-                "image": "https://www.active.com/Assets/Running/run-energy-expenditure.jpg"
+                "name": "High-knee drills to reinforce knee lift.",
+                "youtube_link": "https://www.youtube.com/watch?v=G9fwHJog4O0&ab_channel=LIVESTRONG.COM"
+            },
+            {
+                "name": "Form strides focusing on a quick, powerful knee drive.",
+                "youtube_link": "https://www.youtube.com/watch?v=BjhUfR5AeH8&ab_channel=JPGloria"
             }
-        ],
-        "exercises": [
-            "Moderate high-knee drills focusing on efficient turnover, not maximum height.",
-            "Plyometric drills emphasizing controlled power usage."
         ]
     },
 
@@ -130,71 +144,18 @@ PROBLEM_RESOURCES = {
             }
         ],
         "exercises": [
-            "Short stride drills to lessen braking forces.",
-            "Toe taps and calf raises for strengthening shins and ankles."
-        ]
-    },
-
-    # 6) Stride Length
-    "Reduced efficiency, possible overuse of calves": {
-        "articles": [
             {
-                "title": "Short vs. Long Stride: Finding the Sweet Spot",
-                "url": "https://www.runnersworld.com/training/a20865656/whats-the-right-stride-length/",
-                "description": "Examining how a stride that's too short can increase calf workload.",
-                "image": "https://hips.hearstapps.com/hmg-prod/images/close-up-of-woman-s-legs-running-news-photo-1654080364.jpg"
-            }
-        ],
-        "exercises": [
-            "Calf stretches and foam rolling to alleviate tension.",
-            "Stride extension drills focusing on pushing off the ground."
-        ]
-    },
-    "Overstriding can stress knees & hamstrings": {
-        "articles": [
+                "name": "Short stride drills to lessen braking forces.",
+                "youtube_link": "https://www.youtube.com/watch?v=VjSONvP3kds&ab_channel=RaymerStrength"
+            },
             {
-                "title": "What Causes Overstriding?",
-                "url": "https://www.runnersworld.com/training/a20865654/what-causes-overstriding/",
-                "description": "Recognizing and fixing overstriding to reduce injury risk.",
-                "image": "https://hips.hearstapps.com/hmg-prod/images/cropped-shot-of-a-young-man-running-news-photo-1651104401.jpg"
+                "name": "Toe taps and calf raises for strengthening shins and ankles.",
+                "youtube_link": "https://www.youtube.com/watch?v=gRHg6v6-szc&ab_channel=www.sportsinjuryclinic.net"
             }
-        ],
-        "exercises": [
-            "Butt kicks to emphasize quick rear leg recovery.",
-            "Midfoot landing drills to ensure the foot strikes beneath the hips."
-        ]
-    },
-
-    # 7) Arm Swing
-    "Shoulder/neck fatigue, wasted energy": {
-        "articles": [
-            {
-                "title": "Optimize Your Arm Swing for Running",
-                "url": "https://www.runnersworld.com/training/a20865559/the-perfect-arm-swing/",
-                "description": "Proper upper-body mechanics to reduce fatigue and improve efficiency.",
-                "image": "https://hips.hearstapps.com/hmg-prod/images/man-and-woman-running-arm-swing-1576279090.jpg"
-            }
-        ],
-        "exercises": [
-            "Light dumbbell drills to reinforce correct forward-back arm swing.",
-            "Mirror practice focusing on minimal side-to-side motion."
-        ]
-    },
-    "Less balance, less power": {
-        "articles": [
-            {
-                "title": "Improving Arm Swing Balance & Power",
-                "url": "https://www.active.com/running/articles/3-ways-to-develop-a-strong-arm-swing",
-                "description": "Techniques to ensure sufficient arm motion for stability and drive.",
-                "image": "https://www.active.com/Assets/Running/arm-swing-balance.jpg"
-            }
-        ],
-        "exercises": [
-            "Gradual arm swing drills ensuring forward-back motion (no cross-body).",
-            "Core stabilizing moves (e.g. bird-dog, planks) to support balanced arm action."
         ]
     }
 }
+
 
 
 ##############################################
@@ -249,22 +210,14 @@ def call_claude_coach(analysis_categories):
 
     # Construct structured prompt
     prompt = f"""
-    You are a professional running coach analyzing an athlete’s running form.
+    You are a professional running coach analyzing an athlete’s running form. Act like a tough but supportive coach.
     The following categories were evaluated...
 
     ### **Running Form Analysis Results**
     {formatted_issues}
-
-    ### **IMPORTANT**:
-    1. **Output must be in valid JSON**.
-
-    **Example JSON structure**:
-    ```json
-    {{
-    "Head Position": "Keep your gaze forward and relax your neck to avoid excessive strain.",
-    "Knee Drive": "Incorporate high-knee drills to improve power and efficiency.",
-    "Cadence": "Your cadence is slightly high (~201.9 SPM). Ensure you are not taking excessively short steps."
-    }}
+    
+    Give a paragraph of personalized advice for each category to help the athlete improve their form. Don't include any formatting or bullet points.
+    Keep your response to maximum of 75 words.
     """
     try:
         message = client.messages.create(
