@@ -435,7 +435,7 @@ def compute_heatmap_stress(landmarks_px):
 
     return stress
 
-def create_bad_runner_skeleton(video_path, output_avi, white_bg=False):
+def create_bad_runner_skeleton(video_path, output_avi):
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     w   = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -501,9 +501,45 @@ def extract_all_landmarks(video_path):
     cap.release()
     return all_lms
 
-def create_bad_runner_with_good_overlay(bad_runner_path, good_runner_path, output_avi, white_bg=False):
+def center_of_gravity(points_px):
+    """
+    Compute average (x,y) among a list of points in pixel coords.
+    points_px: [(x1,y1), (x2,y2), ...]
+    Returns (mean_x, mean_y)
+    """
+    x_vals = [p[0] for p in points_px]
+    y_vals = [p[1] for p in points_px]
+    return (np.mean(x_vals), np.mean(y_vals))
+
+def create_bad_runner_with_good_overlay(bad_runner_path, good_runner_path, output_avi):
     good_landmarks = extract_all_landmarks(good_runner_path)
+    bad_landmarks  = extract_all_landmarks(bad_runner_path)
     num_good = len(good_landmarks)
+    num_bad  = len(bad_landmarks)
+
+    dist_bad_sum = 0.0
+    dist_good_sum = 0.0
+    valid_count = 0
+
+    max_frames = min(num_good, num_bad)
+
+    for i in range(max_frames):
+        bad_norm = bad_landmarks[i]
+        good_norm = good_landmarks[i]
+
+        dist_bad_hips  = euclidean_distance(bad_norm[LEFT_HIP],  bad_norm[RIGHT_HIP])
+        dist_good_hips = euclidean_distance(good_norm[LEFT_HIP], good_norm[RIGHT_HIP])
+
+        # If either distance is near zero, skip
+        if dist_good_hips > 1e-6 and dist_bad_hips > 1e-6:
+            dist_bad_sum  += dist_bad_hips
+            dist_good_sum += dist_good_hips
+            valid_count += 1
+
+    if valid_count > 0 and dist_good_sum > 1e-6:
+        scale_factor_global = (dist_bad_sum / valid_count) / (dist_good_sum / valid_count)
+    else:
+        scale_factor_global = 1.0
 
     cap_bad = cv2.VideoCapture(bad_runner_path)
     num_bad = int(cap_bad.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -520,39 +556,59 @@ def create_bad_runner_with_good_overlay(bad_runner_path, good_runner_path, outpu
         if not ret:
             break
 
-        if white_bg:
-            draw_frame = np.full((h, w, 3), 255, dtype=np.uint8)
-        else:
-            draw_frame = frame_bad.copy()
-
         good_idx = int((idx / num_bad) * num_good)
         if good_idx >= num_good:
             good_idx = num_good - 1
 
         good_lms = good_landmarks[good_idx]
-        for (start_idx, end_idx) in BODY_CONNECTIONS:
-            pt1 = (
-                int(good_lms[start_idx][0] * w),
-                int(good_lms[start_idx][1] * h),
-            )
-            pt2 = (
-                int(good_lms[end_idx][0] * w),
-                int(good_lms[end_idx][1] * h),
-            )
-            cv2.line(draw_frame, pt1, pt2, (255,255,255), 2)
+        bad_lms = bad_landmarks[idx]
 
-        for i in range(11,33):
-            gx = int(good_lms[i][0]*w)
-            gy = int(good_lms[i][1]*h)
-            cv2.circle(draw_frame, (gx,gy), 4, (0,255,0), -1)
+        bad_points_px = [(int(x*w),  int(y*h)) for (x,y) in bad_lms]
+        good_points_px= [(int(x*w),  int(y*h)) for (x,y) in good_lms]
 
-        out.write(draw_frame)
+        cog_bad  = center_of_gravity(bad_points_px) 
+        cog_good = center_of_gravity(good_points_px)
+
+        final_good = []
+        for (gx, gy) in good_points_px:
+            # Shift the good runner so that (0,0) is the good CoG
+            shifted_x = gx - cog_good[0]
+            shifted_y = gy - cog_good[1]
+
+            # Scale around that origin
+            scaled_x = shifted_x * scale_factor_global
+            scaled_y = shifted_y * scale_factor_global
+
+            # Then shift so that final CoG matches the bad CoG
+            final_x = scaled_x + cog_bad[0]
+            final_y = scaled_y + cog_bad[1]
+
+            final_good.append((int(final_x), int(final_y)))
+
+        for conn in BODY_CONNECTIONS:
+            start_idx, end_idx = conn
+            pt1 = bad_points_px[start_idx]
+            pt2 = bad_points_px[end_idx]
+            cv2.line(frame_bad, pt1, pt2, (0, 0, 255), 2)
+        for (bx,by) in bad_points_px:
+            cv2.circle(frame_bad, (bx,by), 4, (0,0,255), -1)
+
+        # 2) Good runner (transformed) in Green
+        for conn in BODY_CONNECTIONS:
+            start_idx, end_idx = conn
+            pt1 = final_good[start_idx]
+            pt2 = final_good[end_idx]
+            cv2.line(frame_bad, pt1, pt2, (0,255,0), 2)
+        for (gx,gy) in final_good:
+            cv2.circle(frame_bad, (gx,gy), 4, (0,255,0), -1)
+
+        out.write(frame_bad)
         idx += 1
 
     cap_bad.release()
     out.release()
 
-def create_bad_runner_heatmap(video_path, output_avi, white_bg=False):
+def create_bad_runner_heatmap(video_path, output_avi):
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     w   = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -1212,13 +1268,13 @@ def analyze_endpoint():
 
     # 1) Create skeleton, overlay, heatmap (orig background)
     skeleton_avi = bad_runner_path + "_skeleton.avi"
-    create_bad_runner_skeleton(bad_runner_path, skeleton_avi, white_bg=False)
+    create_bad_runner_skeleton(bad_runner_path, skeleton_avi)
 
     overlay_avi = bad_runner_path + "_overlay.avi"
-    create_bad_runner_with_good_overlay(bad_runner_path, good_runner_path, overlay_avi, white_bg=False)
+    create_bad_runner_with_good_overlay(bad_runner_path, good_runner_path, overlay_avi)
 
     heatmap_avi  = bad_runner_path + "_heatmap.avi"
-    create_bad_runner_heatmap(bad_runner_path, heatmap_avi, white_bg=False)
+    create_bad_runner_heatmap(bad_runner_path, heatmap_avi)
 
     # 3) Convert each .avi -> .mp4
     skeleton_mp4       = skeleton_avi.replace(".avi", ".mp4")
