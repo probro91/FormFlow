@@ -251,8 +251,8 @@ def upload_to_s3(local_file, bucket, s3_key):
         region_name=AWS_REGION_NAME
     )
     try: 
-        s3.upload_file(local_file, bucket, s3_key)
-        print(f"[INFO] Uploaded {local_file} to s3://{bucket}/{s3_key}")
+        s3.put_object(Body=local_file, Bucket=bucket, Key=s3_key, ContentType="video/mp4")
+        print(f"[INFO] Uploaded to s3://{bucket}/{s3_key}")
     except botocore.exceptions.ClientError as e:
         error_message = e.response['Error']['Message']
         print(f"Upload failed: {error_message}")
@@ -1262,8 +1262,10 @@ def analyze_endpoint():
     ]
 
     for vid_path in final_mp4_list:
-        s3_key = f"initalvids/{os.path.basename(vid_path)}"
-        upload_to_s3(vid_path, bucket_name, s3_key)
+        print (f"Uploading {vid_path} to S3...")
+        with open(vid_path, "rb") as f:
+            s3_key = f"initalvids/{os.path.basename(vid_path)}"
+            upload_to_s3(f, bucket_name, s3_key)
         s3_links[os.path.basename(vid_path)] = f"s3://{bucket_name}/{s3_key}"
 
     # 5) Actually analyze running form -> traced video
@@ -1277,8 +1279,10 @@ def analyze_endpoint():
 
     # Optionally upload the traced video to S3, if it exists
     if os.path.exists(traced_output_path):
-        traced_key = f"initalvids/{os.path.basename(traced_output_path)}"
-        upload_to_s3(traced_output_path, bucket_name, traced_key)
+        print (f"Uploading traced video to S3...{traced_output_path}")
+        with open (traced_output_path, "rb") as f:
+            traced_key = f"initalvids/{os.path.basename(traced_output_path)}"
+            upload_to_s3(traced_output_path, bucket_name, traced_key)
         s3_links[os.path.basename(traced_output_path)] = f"s3://{bucket_name}/{traced_key}"
 
     results["generated_videos"] = s3_links
