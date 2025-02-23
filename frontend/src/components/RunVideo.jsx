@@ -9,17 +9,15 @@ import {
 
 const RunVideo = ({ processedVideos }) => {
   console.log(processedVideos);
-  const [isBackgroundVisible, setIsBackgroundVisible] = useState(true);
   const [selectedMode, setSelectedMode] = useState("default"); // Default mode selected
+
+  const videoUrl = processedVideos[selectedMode]; // Get the video URL based on the selected mode
 
   if (!videoUrl) {
     return (
       <p className="text-[#cccccc] text-sm mt-4">No video uploaded yet.</p>
     );
   }
-
-  // Toggle background visibility
-  const toggleBackground = () => setIsBackgroundVisible(!isBackgroundVisible);
 
   // Handle mode selection
   const handleModeChange = (mode) => setSelectedMode(mode);
