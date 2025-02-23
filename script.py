@@ -960,7 +960,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     posture_item = {
         "title": "Posture",
         "status": "right",
-        "issue_description": "No issue",
+        "issue_description": "Posture looks good",
         "potential_health_issues": "None"
     }
     if ("forward" in posture_left.lower() or "forward" in posture_right.lower() or
@@ -987,7 +987,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     spine_item = {
         "title": "Spine Alignment",
         "status": "right",
-        "issue_description": "No issue",
+        "issue_description": "Great! Your spine is vertical",
         "potential_health_issues": "None"
     }
     if "angled" in spine_feedback.lower():
@@ -1012,7 +1012,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     head_item = {
         "title": "Head Position",
         "status": "right",
-        "issue_description": "No issue",
+        "issue_description": "Your head is tilted at the correct angle",
         "potential_health_issues": "None"
     }
     if "tilted" in head_feedback.lower():
@@ -1037,7 +1037,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     knee_item = {
         "title": "Knee Drive",
         "status": "right",
-        "issue_description": "No issue",
+        "issue_description": "Good job, your knee lift is optimal",
         "potential_health_issues": "None"
     }
 
@@ -1070,7 +1070,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     foot_item = {
         "title": "Foot Strike",
         "status": "right",
-        "issue_description": "No issue",
+        "issue_description": "Good foot strike balance",
         "potential_health_issues": "None"
     }
     percent_heel = round(heel_strike_ratio * 100, 1)
@@ -1102,7 +1102,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     stride_item = {
         "title": "Stride Length",
         "status": "right",
-        "issue_description": "No issue",
+        "issue_description": "Good stride length",
         "potential_health_issues": "None"
     }
 
@@ -1132,7 +1132,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
     arm_amp_item = {
         "title": "Arm Swing (Amplitude)",
         "status": "right",
-        "issue_description": "No issue",
+        "issue_description": "Arm swing amplitude looks good",
         "potential_health_issues": "None"
     }
 
@@ -1151,7 +1151,7 @@ def analyze_running_form(video_path, output_path="output_traced.mp4"):
             if arm_amp_item["potential_health_issues"] == "None":
                 arm_amp_item["potential_health_issues"] = "Less balance, less power"
             else:
-                arm_amp_item["potential_health_issues"] += ", plus reduced balance/power"
+                arm_amp_item["potential_health_isssues"] += ", plus reduced balance/power"
 
     if arm_amp_item["status"] == "wrong":
         key = arm_amp_item["potential_health_issues"]
