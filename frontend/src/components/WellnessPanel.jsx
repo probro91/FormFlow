@@ -67,7 +67,7 @@ const WellnessPanel = ({ id, title, activePanel, setActivePanel }) => {
             {exercises.map((exercise) => (
               <div
                 key={exercise.id}
-                className={`p-4 rounded-xl flex flex-col items-start max-w-[500px] gap-2 border-1 border-[#444444]`}
+                className={`p-4 rounded-xl flex flex-col items-start max-w-[500px] gap-2 border-1 border-[#444444] hover:scale-101`}
                 style={{ backgroundColor: colors.card2 }}
               >
                 <p className="text-white font-montserrat">{exercise.name}</p>

@@ -68,9 +68,7 @@ const TipsPanel = ({ id, title, activePanel, tips, setActivePanel }) => {
             {tipsArray.map((tip) => (
               <div
                 key={tip.id}
-                className={`p-4 rounded-xl transition-all duration-300 w-full text-left border-1 border-[#444444] 
-                 
-                `}
+                className={`p-4 rounded-xl transition-all duration-300 w-full text-left border-1 border-[#444444] hover:scale-101`}
                 style={{ backgroundColor: colors.card2 }}
               >
                 <div className="flex items-center gap-2">
@@ -78,10 +76,10 @@ const TipsPanel = ({ id, title, activePanel, tips, setActivePanel }) => {
                   <div
                     className={`w-4 h-4 rounded-full ${
                       tip.type === "green"
-                        ? "bg-green-500"
+                        ? "bg-green-300"
                         : tip.type === "yellow"
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
+                        ? "bg-yellow-200"
+                        : "bg-red-400"
                     }`}
                   ></div>
                   <p className="text-white font-montserrat">{tip.summary}</p>

@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import SpineAngleGraph from "./SpineAngleGraph";
 import colors from "../colors";
 
 // Register Chart.js components
@@ -131,6 +132,7 @@ const GraphsPanel = ({
     avgStrideLength: "1.2 m",
     footStrike: "Heel",
     overallScore: "85",
+    spineAlignment: 8,
   };
 
   const chartOptions = {
@@ -148,8 +150,13 @@ const GraphsPanel = ({
 
   const strideLengthChartData = strideLengthData || defaultStrideLengthData;
   const overallScoreChartData = overallScoreData || defaultOverallScoreData;
-  const { avgCadence, avgStrideLength, footStrike, overallScore } =
-    stats || defaultStats;
+  const {
+    avgCadence,
+    avgStrideLength,
+    footStrike,
+    overallScore,
+    spineAlignment,
+  } = stats || defaultStats;
 
   return (
     <div
@@ -168,10 +175,8 @@ const GraphsPanel = ({
           </div>
         </div>
         <div>
-          <p className="text-[#cccccc] text-sm">Stride Length Over Time</p>
-          <div className="h-24">
-            <Line data={strideLengthChartData} options={chartOptions} />
-          </div>
+          <p className="text-[#cccccc] text-sm">Spine Alignment</p>
+          <SpineAngleGraph value={spineAlignment} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4 mt-6 text-center">

@@ -9,7 +9,6 @@ const ThreePanelUI = () => {
   const [activePanel, setActivePanel] = useState(null);
   const [videos, setVideos] = useState([]);
   const [tips, setTips] = useState([]);
-  const [sources, setSources] = useState([]);
   // State for TipsPanel
   const [cadenceData, setCadenceData] = useState(null); // Could be populated from real data
   const [strideLengthData, setStrideLengthData] = useState(null);
