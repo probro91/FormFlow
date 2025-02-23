@@ -1236,8 +1236,8 @@ def analyze_endpoint():
     traced_output_path = bad_runner_path.replace(".mp4", "_traced.mp4")
 
     # 1) Create skeleton, overlay, heatmap (orig background)
-    skeleton_avi = "skeleton.avi"
-    create_bad_runner_skeleton(bad_runner_path, skeleton_avi, white_bg=False)
+    # skeleton_avi = "skeleton.avi"
+    # create_bad_runner_skeleton(bad_runner_path, skeleton_avi, white_bg=False)
 
     overlay_avi = "overlay.avi"
     create_bad_runner_with_good_overlay(bad_runner_path, good_runner_path, overlay_avi)
@@ -1246,12 +1246,12 @@ def analyze_endpoint():
     create_bad_runner_heatmap(bad_runner_path, heatmap_avi, white_bg=False)
 
     # 3) Convert each .avi -> .mp4
-    skeleton_mp4 = skeleton_avi.replace(".avi", ".mp4")
+    # skeleton_mp4 = skeleton_avi.replace(".avi", ".mp4")
     overlay_mp4 = overlay_avi.replace(".avi", ".mp4")
     heatmap_mp4 = heatmap_avi.replace(".avi", ".mp4")
 
     all_avi_mp4_pairs = [
-        (skeleton_avi, skeleton_mp4),
+        # (skeleton_avi, skeleton_mp4),
         (overlay_avi, overlay_mp4),
         (heatmap_avi, heatmap_mp4)
     ]

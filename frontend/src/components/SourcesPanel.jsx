@@ -5,7 +5,7 @@ import CustomDropdown from "./CustomDropdown";
 import colors from "../colors";
 import axios from "axios";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { Rings } from "react-loader-spinner";
+import { ThreeCircles } from "react-loader-spinner";
 import { FaPersonRunning } from "react-icons/fa6";
 
 const s3Client = new S3Client({
@@ -52,14 +52,6 @@ const SourcesPanel = ({
       console.error("Error fetching videos:", error);
     }
   }; // Convert ReadableStream to Blob
-
-  const streamToBlob = async (stream, mimeType) => {
-    const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-    return new Blob(chunks, { type: mimeType });
-  };
 
   console.log("SourcesPanel videos:", videos); // Handle file selection and preview
   console.log("SourcesPanel processedVideos:", processedVideos);
@@ -312,7 +304,7 @@ const SourcesPanel = ({
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center rounded-xl z-10">
                     
-          <Rings
+          <ThreeCircles
             height="80"
             width="80"
             radius="9"
@@ -361,7 +353,7 @@ const SourcesPanel = ({
                                 
                 <div
                   onClick={handleIconClick}
-                  className="cursor-pointer px-28 py-14 border border-[#aaa] rounded-xl hover:bg-gray-800 hover:border-[#fff] items-center justify-center flex gap-2"
+                  className="cursor-pointer px-28 py-14 border border-[#555] rounded-xl hover:bg-gray-800 hover:border-[#666] items-center justify-center flex gap-2"
                 >
                                     
                   <MdOutlineFileUpload size={42} color="#fff" />

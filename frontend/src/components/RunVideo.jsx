@@ -11,7 +11,7 @@ const RunVideo = ({ processedVideos }) => {
   const videoSources = {
     heatmap: "/videos/heatmap.mp4",
     overlay: "/videos/overlay.mp4",
-    skeleton: "/videos/skeleton.mp4",
+    // skeleton: "/videos/skeleton.mp4",
     // Add more if needed (e.g., traced: "/videos/traced.mp4")
   };
 
@@ -53,10 +53,22 @@ const RunVideo = ({ processedVideos }) => {
     <div className="mt-4 w-full relative">
       <h3 className="text-[#cccccc] text-sm mb-2">Latest Run</h3>
       <div className="relative">
-        <ReactPlayer url={videoUrl} controls width="100%" height="100%" />
+        <video
+          className="rounded-lg w-full h-auto"
+          src={videoUrl}
+          controls
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+        >
+          <source src={videoUrl} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
         <div className="absolute top-0 right-0 flex gap-2 items-center justify-between p-2">
           <div className="flex gap-1 bg-[#444444] rounded-full border border-[#555555]">
-            <div
+            {/*<div
               onClick={(e) => {
                 e.stopPropagation();
                 handleModeChange("skeleton");
@@ -69,7 +81,7 @@ const RunVideo = ({ processedVideos }) => {
               title="Skeleton View"
             >
               <FaPlayCircle size={16} />
-            </div>
+            </div> */}
             <div
               onClick={(e) => {
                 e.stopPropagation();
