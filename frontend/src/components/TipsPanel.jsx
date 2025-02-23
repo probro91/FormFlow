@@ -62,7 +62,7 @@ const TipsPanel = ({ id, title, activePanel, tips, setActivePanel }) => {
       <div className="w-full p-6 flex flex-col items-center justify-between gap-8">
         {/* Tips List */}
         <div className="w-full flex flex-col items-start">
-          <div className="flex items-center gap-2 w-full mb-2 border-b-1 border-[#FF5733] pb-2">
+          <div className="flex items-center gap-2 w-full mb-4 border-b-1 border-[#FF5733] pb-2">
             <FaLightbulb size={20} color="#FF5733" />
             <h2 className="text-[#FF5733] font-montserrat font-bold">
               Insights           
@@ -72,7 +72,7 @@ const TipsPanel = ({ id, title, activePanel, tips, setActivePanel }) => {
             {tipsArray.map((tip) => (
               <div
                 key={tip.id}
-                className={`p-4 rounded-xl transition-all duration-300 w-full text-left border-1 border-[#444444] hover:scale-101`}
+                className={`p-3 rounded-xl transition-all duration-300 w-full text-left border-1 border-[#444444] hover:scale-101`}
                 style={{ backgroundColor: colors.card2 }}
               >
                 <div className="flex items-center gap-2">

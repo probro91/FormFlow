@@ -373,16 +373,16 @@ const SourcesPanel = ({
                         
             <div className="flex items-center gap-2 mb-4 justify-between w-full">
                             
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-4 mt-2">
                                 
                 <p className="text-[#cccccc] text-sm">Select a video file:</p>
                                 
                 <div
                   onClick={handleIconClick}
-                  className="cursor-pointer px-8 py-2 border border-[#aaa] rounded-xl hover:bg-gray-800 hover:border-[#fff]"
+                  className="cursor-pointer px-14 py-28 border border-[#aaa] rounded-xl hover:bg-gray-800 hover:border-[#fff] items-center justify-center flex gap-2"
                 >
                                     
-                  <MdOutlineFileUpload size={20} color="#fff" />
+                  <MdOutlineFileUpload size={42} color="#fff" />
                                   
                 </div>
                               

@@ -136,7 +136,7 @@ const GraphsPanel = ({
 
   return (
     <div
-      className={`text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col text-center border-[#444444] p-6 pb-12 hover:border-[#555555] hover:scale-101 `}
+      className={`text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col text-center border-[#444444] p-6 pb-10 hover:border-[#555555] hover:scale-101 `}
       style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >

@@ -43,7 +43,7 @@ const WellnessPanel = ({
       <div className="w-full h-full p-5 flex flex-col items-center justify-start gap-8">
         {/* Top Half: Exercise Suggestions */}
         <div className="w-full">
-          <div className="flex items-center gap-2 w-full mb-2 border-b-1 border-[#FF5733] pb-2">
+          <div className="flex items-center gap-2 w-full mb-4 border-b-1 border-[#FF5733] pb-2">
             <FaDumbbell size={20} color="#FF5733" />
             <h2 className="text-[#FF5733] font-montserrat font-bold">
                           Exercises           
