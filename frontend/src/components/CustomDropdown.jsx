@@ -20,7 +20,7 @@ const CustomDropdown = ({ videos, onClick }) => {
     <div className="relative w-24">
       {/* Toggle Button */}
       <div
-        className="text-[#cccccc] text-xs p-2 rounded-xl cursor-pointer hover:border-[#FF5733] transition-colors duration-300 flex items-center justify-end"
+        className="text-[#cccccc] text-xs p-2 rounded-xl cursor-pointer hover:border-[#FF5733] transition-colors duration-300 flex justify-end items-center"
         onClick={toggleDropdown}
       >
         <FaHistory

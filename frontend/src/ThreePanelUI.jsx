@@ -43,21 +43,24 @@ const ThreePanelUI = () => {
     <div className="flex justify-between gap-5 p-5">
       {panels.map((panel) =>
         panel.isSources ? (
-          <SourcesPanel
-            key={panel.id}
-            id={panel.id}
-            title={panel.title}
-            activePanel={activePanel}
-            setActivePanel={setActivePanel}
-            videos={videos}
-            setVideos={setVideos}
-            setStats={setStats}
-            setChatBot={setChatBot}
-            overallScoreData={overallScoreData}
-            setOverallScoreData={setOverallScoreData}
-            setTips={setTips}
-            setExercises={setExercises}
-          />
+          <div className="flex-3 flex flex-col gap-4">
+            <SourcesPanel
+              key={panel.id}
+              id={panel.id}
+              title={panel.title}
+              activePanel={activePanel}
+              setActivePanel={setActivePanel}
+              videos={videos}
+              setVideos={setVideos}
+              setStats={setStats}
+              chatBot={chatBot}
+              setChatBot={setChatBot}
+              overallScoreData={overallScoreData}
+              setOverallScoreData={setOverallScoreData}
+              setTips={setTips}
+              setExercises={setExercises}
+            />
+          </div>
         ) : panel.isTips ? (
           <div className="flex-3 flex flex-col gap-4">
             <TipsPanel
@@ -94,7 +97,6 @@ const ThreePanelUI = () => {
               setActivePanel={setActivePanel}
               exercises={exercises}
             />
-            <AICoach chatBot={chatBot} setChatBot={setChatBot} />
           </div>
         )
       )}

@@ -1309,13 +1309,8 @@ def analyze_endpoint():
         "statusCode": 200,
         "body": {
             "form_score": results["form_score"],
-            "duration": {
-                "seconds": results["duration_sec"]
-            },
-            "angles": {
-                "average_left_side": results["average_left_side_angle"],
-                "average_right_side": results["average_right_side_angle"]
-            },
+         
+            
             "posture": {
                 "left": results["posture_left"],
                 "right": results["posture_right"]

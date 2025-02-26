@@ -4,9 +4,10 @@ import { MdOutlineFileUpload } from "react-icons/md";
 import CustomDropdown from "./CustomDropdown";
 import colors from "../colors";
 import axios from "axios";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client } from "@aws-sdk/client-s3";
 import { ThreeCircles } from "react-loader-spinner";
 import { FaPersonRunning } from "react-icons/fa6";
+import AICoach from "./AICoach";
 
 const s3Client = new S3Client({
   region: import.meta.env.VITE_AWS_REGION,
@@ -18,14 +19,13 @@ const s3Client = new S3Client({
 
 const SourcesPanel = ({
   id,
-  title,
-  activePanel,
   setActivePanel,
   videos,
   setVideos,
   overallScoreData,
   setOverallScoreData,
   setStats,
+  chatBot,
   setChatBot,
   setTips,
   setExercises,
@@ -149,7 +149,7 @@ const SourcesPanel = ({
         }
 
         // If this category is "right", produce a green tip
-        else if (category.status === "right") {
+        else if (category.status === "right" && tips.length < 3) {
           tips = [
             ...tips,
             {
@@ -295,14 +295,14 @@ const SourcesPanel = ({
 
   return (
     <div
-      className={`flex-2 text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-start text-left p-6 border-[#444444] justify-start hover:border-[#555555] hover:scale-101 relative`}
+      className={`text-white rounded-xl transition-all duration-300 ease-in-out flex flex-col items-start text-left p-6 border-[#444444] justify-start hover:border-[#555555] hover:scale-101 relative`}
       style={{ backgroundColor: colors.card1 }}
       onClick={() => setActivePanel(id)}
     >
             {/* Spinner Overlay */}
             
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-xl z-10">
+        <div className="absolute inset-0 flex flex-col gap-4 items-center justify-center rounded-xl z-10">
                     
           <ThreeCircles
             height="80"
@@ -315,6 +315,7 @@ const SourcesPanel = ({
             visible={true}
           />
                   
+          <p className="text-white text-sm ml-2">Analyzing video...</p>
         </div>
       )}
             {/* Title and Upload Section */}
@@ -333,7 +334,7 @@ const SourcesPanel = ({
             </h2>
           </div>
                     
-          <div className="flex flex-col w-full">
+          <div className="flex flex-col w-full gap-4">
                         {/* Hidden File Input */}
                         
             <input
@@ -345,7 +346,7 @@ const SourcesPanel = ({
             />
                         {/* Upload Icon and Buttons */}
                         
-            <div className="flex items-center gap-2 mb-4 justify-between w-full">
+            <div className="flex items-start gap-2 justify-between w-full">
                             
               <div className="flex flex-col gap-4 mt-2">
                                 
@@ -353,10 +354,10 @@ const SourcesPanel = ({
                                 
                 <div
                   onClick={handleIconClick}
-                  className="cursor-pointer px-28 py-14 border border-[#555] rounded-xl hover:bg-gray-800 hover:border-[#666] items-center justify-center flex gap-2"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer transition-colors duration-300 border-[#888] border-1 hover:border-white hover:bg-gray-700"
                 >
-                                    
-                  <MdOutlineFileUpload size={42} color="#fff" />
+                  <p className="text-white text-md">Upload</p>
+                  <MdOutlineFileUpload size={24} color="#fff" />
                                   
                 </div>
                               
@@ -394,26 +395,25 @@ const SourcesPanel = ({
                       
           </div>
                   
-        </div>
-                
-        {selectedFile && (
-          <div className="flex items-center gap-4 w-full">
-                        
-            <p className="text-[#cccccc] text-sm truncate">
-                            {selectedFile.name}
+          {selectedFile && (
+            <div className="flex items-center gap-4 w-full">
                           
-            </p>
-                        
-            <div
-              onClick={handleCancel}
-              className="font-montserrat cursor-pointer text-[#FF5733] text-sm hover:text-[#e04e2d] transition-colors duration-300"
-            >
-                            Cancel             
+              <p className="text-[#cccccc] text-sm truncate">
+                              {selectedFile.name}
+                            
+              </p>
+                          
+              <div
+                onClick={handleCancel}
+                className="font-montserrat cursor-pointer text-[#FF5733] text-sm hover:text-[#e04e2d] transition-colors duration-300"
+              >
+                              Cancel             
+              </div>
+                        
             </div>
-                      
-          </div>
-        )}
-                
+          )}
+        </div>
+                         
         {selectedFile && (
           <div
             onClick={(e) => {
@@ -435,6 +435,7 @@ const SourcesPanel = ({
               
       </div>
           
+      <AICoach chatBot={chatBot} setChatBot={setChatBot} />
     </div>
   );
 };

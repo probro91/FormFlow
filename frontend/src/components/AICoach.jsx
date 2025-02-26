@@ -1,25 +1,25 @@
 import React from "react";
 import logo from "../assets/logo.png";
+// fa arrow-right
+import { FaArrowRight } from "react-icons/fa";
+
 const AICoach = ({ chatBot, setChatBot }) => {
   if (!chatBot) return null;
   return (
-    <div className="fixed bottom-3 right-5 flex flex-col items-end gap-2">
+    <div className="flex items-end gap-4 mt-6 w-full">
+      {/* Coach Icon */}
+      <img src={logo} alt="AI Coach" className="w-18 h-18 rounded-full -ml-2" />
       {/* Chat Response Card */}
-      <div className="bg-[#fff] text-black rounded-xl p-4 shadow-lg w-full max-w-118 text-left">
+      <div className="bg-[#fff] text-black rounded-xl p-4 shadow-lg w-full text-left -ml-2 w-full">
         <p className="text-md font-montserrat">{`"${chatBot}"`}</p>
         {/* Close Button */}
-        <div className="flex justify-end mt-2">
-          <div
-            className="text-[#aaa] text-sm font-montserrat cursor-pointer"
-            onClick={() => setChatBot("")}
-          >
-            Dismiss
-          </div>
+        <div
+          className="flex items-center justify-end gap-2 cursor-pointer mt-2"
+          onClick={() => setChatBot("")}
+        >
+          <FaArrowRight size={16} className="text-[#aaa]" />
         </div>
       </div>
-
-      {/* Coach Icon */}
-      <img src={logo} alt="AI Coach" className="w-18 h-18 rounded-full" />
     </div>
   );
 };

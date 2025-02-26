@@ -56,7 +56,9 @@ const WellnessPanel = ({
                 className={`p-4 rounded-xl flex flex-col items-start max-w-[500px] gap-2 border-1 border-[#444444] hover:scale-101`}
                 style={{ backgroundColor: colors.card2 }}
               >
-                <p className="text-white font-montserrat">{exercise.name}</p>
+                <p className="text-white text-left font-montserrat">
+                  {exercise.name}
+                </p>
 
                 {/* Video */}
                 <iframe
