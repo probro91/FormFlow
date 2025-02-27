@@ -68,7 +68,7 @@ const TipsPanel = ({ id, title, activePanel, tips, setActivePanel }) => {
               Insights           
             </h2>
           </div>
-          <div className="space-y-2 w-full">
+          <div className="space-y-4 w-full">
             {tipsArray.map((tip) => (
               <div
                 key={tip.id}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaPlayCircle, FaRunning, FaFire } from "react-icons/fa";
+import { FaRunning, FaFire } from "react-icons/fa";
 import ReactPlayer from "react-player";
 
 const RunVideo = ({ processedVideos }) => {
@@ -19,14 +19,12 @@ const RunVideo = ({ processedVideos }) => {
     setLoading(true);
     setError(null);
     const source = videoSources[selectedMode] || videoSources.heatmap;
-    
-    // Append a unique query parameter to bypass cache
-    const uniqueSource = `${source}?t=${Date.now()}`;
-    
-    fetch(uniqueSource)
+
+    // Simple check to ensure the file is accessible (optional)
+    fetch(source)
       .then((response) => {
         if (!response.ok) throw new Error("Video not found");
-        setVideoUrl(uniqueSource);
+        setVideoUrl(source);
       })
       .catch((err) => {
         console.error("Error fetching video:", err);
@@ -34,7 +32,6 @@ const RunVideo = ({ processedVideos }) => {
       })
       .finally(() => setLoading(false));
   }, [selectedMode, processedVideos]);
-  
 
   const handleModeChange = (mode) => {
     setSelectedMode(mode);
@@ -57,7 +54,6 @@ const RunVideo = ({ processedVideos }) => {
       <h3 className="text-[#cccccc] text-sm mb-2">Latest Run</h3>
       <div className="relative">
         <video
-          key={videoUrl}
           className="rounded-lg w-full h-auto"
           src={videoUrl}
           controls

@@ -49,11 +49,11 @@ const WellnessPanel = ({
                           Exercises           
             </h2>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-4">
             {exercisesData.map((exercise) => (
               <div
                 key={exercise.id}
-                className={`p-4 rounded-xl flex flex-col items-start max-w-[500px] gap-2 border-1 border-[#444444] hover:scale-101`}
+                className={`p-4 pt-2 rounded-xl flex flex-col items-start max-w-[500px] gap-2 border-1 border-[#444444] hover:scale-101`}
                 style={{ backgroundColor: colors.card2 }}
               >
                 <p className="text-white text-left font-montserrat">

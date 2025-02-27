@@ -40,7 +40,7 @@ const ThreePanelUI = () => {
   ];
 
   return (
-    <div className="flex justify-between gap-5 p-5">
+    <div className="flex justify-between gap-5 p-5 py-16 bg-gradient-to-br from-gray-900 via-indigo-900 to-blue-900 min-h-screen">
       {panels.map((panel) =>
         panel.isSources ? (
           <div className="flex-3 flex flex-col gap-4">
